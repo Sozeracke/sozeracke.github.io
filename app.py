@@ -266,16 +266,33 @@ def init_db():
     promote_admin_from_env()
 
 
+def get_admin_usernames():
+    names = []
+    for key in ("ADMIN_USERNAMES", "ADMIN_USERNAME"):
+        raw = os.environ.get(key, "").strip()
+        if not raw:
+            continue
+        for part in raw.split(","):
+            name = part.strip()
+            if name and name not in names:
+                names.append(name)
+    return names
+
+
 def promote_admin_from_env():
-    admin_username = os.environ.get("ADMIN_USERNAME", "").strip()
-    if not admin_username:
+    admin_usernames = get_admin_usernames()
+    if not admin_usernames:
         return
     db = get_db()
-    user = db.execute(
-        "SELECT id, is_admin FROM users WHERE username = ?", (admin_username,)
-    ).fetchone()
-    if user and not user["is_admin"]:
-        db.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (user["id"],))
+    changed = False
+    for admin_username in admin_usernames:
+        user = db.execute(
+            "SELECT id, is_admin FROM users WHERE username = ?", (admin_username,)
+        ).fetchone()
+        if user and not user["is_admin"]:
+            db.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (user["id"],))
+            changed = True
+    if changed:
         db.commit()
 
 
@@ -857,8 +874,7 @@ def register():
             if existing:
                 errors.append("Пользователь с таким именем или email уже существует.")
             else:
-                admin_username = os.environ.get("ADMIN_USERNAME", "").strip()
-                is_new_admin = 1 if admin_username and username == admin_username else 0
+                is_new_admin = 1 if username in get_admin_usernames() else 0
                 cur = db.execute(
                     """INSERT INTO users (username, email, password_hash, created_at, is_admin)
                        VALUES (?, ?, ?, ?, ?)""",

@@ -21,8 +21,8 @@ services:
         sync: false
       - key: SITE_OWNER
         value: Sozeracke
-      - key: ADMIN_USERNAME
-        value: Sozeracke
+      - key: ADMIN_USERNAMES
+        value: Sozeracke,xReamble
       - key: SITE_URL
         value: https://sozeracke.github.io
       - key: PUBLIC_URL
