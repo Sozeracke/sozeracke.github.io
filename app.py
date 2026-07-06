@@ -576,7 +576,7 @@ def before_request():
 @app.context_processor
 def inject_globals():
     return {
-        "is_admin": is_admin,
+        "is_admin": is_admin(),
         "unread_messages": getattr(g, "unread_messages", 0),
         "site_url": app.config["SITE_URL"],
         "public_url": app.config["PUBLIC_URL"],
