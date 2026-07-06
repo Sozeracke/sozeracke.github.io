@@ -1009,7 +1009,7 @@ def post_form_context(post=None):
 
 
 @app.route("/post/new", methods=["GET", "POST"])
-@login_required
+@admin_required
 def create_post():
     try:
         if request.method == "POST":

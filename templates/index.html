@@ -81,7 +81,7 @@
                 </p>
         {% if not g.user %}
             <a href="{{ url_for('register') }}" class="btn btn-primary">Создать аккаунт</a>
-        {% else %}
+        {% elif g.user.is_admin %}
             <a href="{{ url_for('create_post') }}" class="btn btn-primary">Написать пост</a>
         {% endif %}
             </div>
