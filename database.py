@@ -77,6 +77,8 @@ class DatabaseConnection:
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+post_access\b", sql, re.IGNORECASE):
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+            elif re.search(r"\binto\s+pinned_conversations\b", sql, re.IGNORECASE):
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+conversations\b", sql, re.IGNORECASE):
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+tags\b", sql, re.IGNORECASE):
@@ -88,6 +90,7 @@ class DatabaseConnection:
         return (
             "post_tags" not in lower
             and "post_access" not in lower
+            and "pinned_conversations" not in lower
             and not re.search(r"\binto\s+media\b", lower)
         )
 

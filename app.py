@@ -591,9 +591,10 @@ def get_message_contacts(user_id, search="", admins_only=False, admin_pins=False
         )
         WHERE u.id != ?
     """
-    params = [user_id, user_id, user_id, user_id]
+    params = [user_id]
     if admin_pins:
         params.append(user_id)
+    params.extend([user_id, user_id, user_id])
     if admins_only:
         query += " AND u.is_admin = 1"
     if search:
@@ -1535,7 +1536,8 @@ def toggle_pin_conversation(conv_id):
         flash("Чат откреплён.", "info")
     else:
         db.execute(
-            """INSERT INTO pinned_conversations (user_id, conversation_id, pinned_at)
+            """INSERT OR IGNORE INTO pinned_conversations
+               (user_id, conversation_id, pinned_at)
                VALUES (?, ?, ?)""",
             (session["user_id"], conv_id, datetime.now().isoformat()),
         )
