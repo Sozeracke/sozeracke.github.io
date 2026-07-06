@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7">
 </head>
 <body>
     <nav class="navbar">
@@ -36,13 +36,15 @@
                                  alt="" class="nav-avatar">
                         {% endif %}
                         <span class="nav-user-info">
-                            <span class="nav-username">
-                                {{ g.user.username }}
-                                {% if g.user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+                            <span class="nav-user-identity">
+                                <span class="nav-username">{{ g.user.username }}</span>
+                                {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                                    {% include '_online_status.html' %}
+                                {% endwith %}
                             </span>
-                            {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
-                                {% include '_online_status.html' %}
-                            {% endwith %}
+                            {% if g.user.is_admin %}
+                                <span class="badge badge-admin nav-admin-badge">админ</span>
+                            {% endif %}
                         </span>
                     </a>
                     <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm nav-logout">Выйти</a>
