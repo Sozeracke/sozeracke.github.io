@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нужна настройка базы данных</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .setup-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .setup-card {
+            max-width: 640px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+        .setup-card h1 {
+            margin-bottom: 12px;
+            font-size: 1.5rem;
+        }
+        .setup-card p, .setup-card li {
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+        .setup-steps {
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+        .setup-steps li {
+            margin-bottom: 10px;
+        }
+        .setup-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+        .setup-code {
+            display: block;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin: 12px 0;
+            font-family: monospace;
+            color: var(--text);
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-page">
+        <div class="setup-card">
+            <div class="setup-warning">
+                База данных не подключена. Посты и аккаунты не сохраняются между деплоями.
+            </div>
+            <h1>Подключи PostgreSQL (один раз)</h1>
+            <p>На Render уже должна быть база <strong>blog-db</strong>. Нужно только привязать её к сайту:</p>
+            <ol class="setup-steps">
+                <li>Открой <a href="https://dashboard.render.com" target="_blank" rel="noopener">dashboard.render.com</a></li>
+                <li>Зайди в сервис <strong>sozeracke-blog</strong></li>
+                <li>Вкладка <strong>Environment</strong> → проверь, есть ли <code>DATABASE_URL</code></li>
+                <li>Если нет — вкладка <strong>Connections</strong> → <strong>Connect</strong> → выбери <strong>blog-db</strong></li>
+                <li>Либо вручную: открой <strong>blog-db</strong> → Connect → скопируй <strong>Internal Database URL</strong> и добавь как <code>DATABASE_URL</code> в Environment</li>
+                <li>Сохрани — Render пересоберёт сайт за 2–3 минуты</li>
+            </ol>
+            <span class="setup-code">Key: DATABASE_URL</span>
+            <p>После этого зарегистрируйся заново — и данные больше не будут слетать.</p>
+            <p><a href="{{ url_for('health') }}">Проверить статус базы (/health)</a></p>
+        </div>
+    </div>
+</body>
+</html>

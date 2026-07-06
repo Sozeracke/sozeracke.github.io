@@ -34,9 +34,15 @@ app.config["PUBLIC_URL"] = os.environ.get(
     "PUBLIC_URL", "https://sozeracke-blog.onrender.com"
 )
 
-if os.environ.get("RENDER"):
+IS_RENDER = bool(os.environ.get("RENDER"))
+
+if IS_RENDER:
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    print(
+        f"[blog] database={'postgresql' if database.USE_POSTGRES else 'sqlite (NOT PERSISTENT!)'}",
+        flush=True,
+    )
 
 BASE_DIR = os.path.dirname(__file__)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
@@ -519,8 +525,24 @@ def get_conversation_partner(conv_id, user_id):
     ).fetchone()
 
 
+@app.route("/health")
+def health():
+    return jsonify({
+        "ok": database.USE_POSTGRES or not IS_RENDER,
+        "database": "postgresql" if database.USE_POSTGRES else "sqlite",
+        "persistent": database.IS_PERSISTENT or not IS_RENDER,
+        "render": IS_RENDER,
+        "database_url_set": bool(database.DATABASE_URL),
+    })
+
+
 @app.before_request
 def before_request():
+    if IS_RENDER and not database.USE_POSTGRES:
+        if request.endpoint in ("health", "static"):
+            return None
+        return render_template("db_setup_required.html"), 503
+
     path = request.path
     if path != "/" and path.endswith("/"):
         target = path.rstrip("/")
@@ -548,6 +570,7 @@ def inject_globals():
         "unread_messages": getattr(g, "unread_messages", 0),
         "site_url": app.config["SITE_URL"],
         "public_url": app.config["PUBLIC_URL"],
+        "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
     }
 
 

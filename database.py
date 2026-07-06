@@ -2,11 +2,25 @@ import os
 import re
 import sqlite3
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+def resolve_database_url():
+    for key in (
+        "DATABASE_URL",
+        "POSTGRES_URL",
+        "POSTGRESQL_URL",
+        "INTERNAL_DATABASE_URL",
+        "RENDER_DATABASE_URL",
+    ):
+        value = os.environ.get(key, "").strip()
+        if value:
+            if value.startswith("postgres://"):
+                value = value.replace("postgres://", "postgresql://", 1)
+            return value
+    return ""
 
+
+DATABASE_URL = resolve_database_url()
 USE_POSTGRES = DATABASE_URL.startswith("postgresql://")
+IS_PERSISTENT = USE_POSTGRES
 BASE_DIR = os.path.dirname(__file__)
 SQLITE_PATH = os.path.join(BASE_DIR, "blog.db")
 
