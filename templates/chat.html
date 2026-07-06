@@ -25,6 +25,7 @@
                         {% else %}
                             <span>{{ contact.username[0]|upper }}</span>
                         {% endif %}
+                        <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"></span>
                     </div>
                     <div class="conversation-info">
                         <div class="conversation-top">
@@ -52,7 +53,10 @@
                 {% endif %}
             </div>
             <div>
-                <strong>{{ partner.username }}</strong>
+                <div class="chat-header-name">
+                    <strong>{{ partner.username }}</strong>
+                    {% include '_online_status.html' with last_seen=partner.last_seen, check_user_id=none, status_id='partner-online-status' %}
+                </div>
                 <a href="{{ url_for('user_profile', username=partner.username) }}" class="chat-profile-link">
                     Профиль
                 </a>
@@ -137,11 +141,24 @@
         ).replace(/\n/g, '<br>');
     }
 
+    function setPartnerOnline(online) {
+        const status = document.getElementById('partner-online-status');
+        if (!status) return;
+        status.classList.toggle('is-online', online);
+        status.classList.toggle('is-offline', !online);
+        const label = status.querySelector('.online-label');
+        if (label) label.textContent = online ? 'В сети' : 'Не в сети';
+    }
+
     async function poll() {
         try {
             const res = await fetch('/api/chat/' + convId + '/messages?after=' + lastId);
             if (!res.ok) return;
-            const messages = await res.json();
+            const data = await res.json();
+            const messages = Array.isArray(data) ? data : (data.messages || []);
+            if (typeof data.partner_online === 'boolean') {
+                setPartnerOnline(data.partner_online);
+            }
             messages.forEach(msg => {
                 if (msg.id > lastId) {
                     addMessage(msg);

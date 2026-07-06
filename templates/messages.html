@@ -33,6 +33,8 @@
                             {% else %}
                                 <span>{{ contact.username[0]|upper }}</span>
                             {% endif %}
+                            <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
+                                  title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
                         </div>
                         <div class="conversation-info">
                             <div class="conversation-top">
@@ -99,6 +101,10 @@
             input.closest('form').submit();
         }
     });
+
+    setInterval(function() {
+        fetch('{{ url_for("api_heartbeat") }}').catch(function() {});
+    }, 90000);
 })();
 </script>
 {% endblock %}

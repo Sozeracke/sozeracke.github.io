@@ -136,7 +136,8 @@ def postgres_schema():
             created_at TEXT NOT NULL,
             is_admin INTEGER NOT NULL DEFAULT 0,
             bio TEXT NOT NULL DEFAULT '',
-            avatar TEXT
+            avatar TEXT,
+            last_seen TEXT
         );
 
         CREATE TABLE IF NOT EXISTS categories (

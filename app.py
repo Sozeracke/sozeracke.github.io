@@ -57,6 +57,8 @@ OLD_DEFAULT_CATEGORIES = [
 ]
 
 SITE_OWNER = os.environ.get("SITE_OWNER", "Sozeracke")
+ONLINE_THRESHOLD_SECONDS = 300
+LAST_SEEN_TOUCH_INTERVAL = 60
 
 CYRILLIC_TO_LATIN = {
     "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
@@ -133,6 +135,39 @@ def tag_display(name):
 app.jinja_env.filters["tag_display"] = tag_display
 
 
+def is_user_online(last_seen, user_id=None):
+    if user_id and g.user and g.user["id"] == user_id:
+        return True
+    if not last_seen:
+        return False
+    try:
+        seen = datetime.fromisoformat(last_seen)
+    except ValueError:
+        return False
+    return (datetime.now() - seen).total_seconds() <= ONLINE_THRESHOLD_SECONDS
+
+
+def touch_last_seen(user_id):
+    now = datetime.now()
+    last_touch = session.get("_last_seen_touch")
+    if last_touch:
+        try:
+            if (now - datetime.fromisoformat(last_touch)).total_seconds() < LAST_SEEN_TOUCH_INTERVAL:
+                return
+        except ValueError:
+            pass
+    db = get_db()
+    db.execute(
+        "UPDATE users SET last_seen = ? WHERE id = ?",
+        (now.isoformat(), user_id),
+    )
+    db.commit()
+    session["_last_seen_touch"] = now.isoformat()
+
+
+app.jinja_env.filters["user_online"] = is_user_online
+
+
 def migrate_db():
     db = get_db()
     schema = database.postgres_schema() if database.USE_POSTGRES else database.sqlite_schema()
@@ -145,6 +180,8 @@ def migrate_db():
         db.execute("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''")
     if "avatar" not in user_cols:
         db.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
+    if "last_seen" not in user_cols:
+        db.execute("ALTER TABLE users ADD COLUMN last_seen TEXT")
 
     post_cols = table_columns(db, "posts")
     if "image" not in post_cols:
@@ -300,7 +337,7 @@ def get_categories():
 def get_message_contacts(user_id, search=""):
     db = get_db()
     query = """
-        SELECT u.id, u.username, u.avatar,
+        SELECT u.id, u.username, u.avatar, u.last_seen,
                conv.id AS conv_id,
                (SELECT content FROM messages WHERE messages.conversation_id = conv.id
                 ORDER BY messages.created_at DESC LIMIT 1) AS last_message,
@@ -496,10 +533,11 @@ def before_request():
     if "user_id" in session:
         db = get_db()
         g.user = db.execute(
-            "SELECT id, username, email, is_admin, bio, avatar FROM users WHERE id = ?",
+            "SELECT id, username, email, is_admin, bio, avatar, last_seen FROM users WHERE id = ?",
             (session["user_id"],),
         ).fetchone()
         if g.user:
+            touch_last_seen(g.user["id"])
             g.unread_messages = get_unread_count(g.user["id"])
 
 
@@ -725,7 +763,7 @@ def logout():
 def user_profile(username):
     db = get_db()
     profile_user = db.execute(
-        "SELECT id, username, bio, avatar, created_at, is_admin FROM users WHERE username = ?",
+        "SELECT id, username, bio, avatar, created_at, is_admin, last_seen FROM users WHERE username = ?",
         (username,),
     ).fetchone()
 
@@ -1021,6 +1059,13 @@ def messages_inbox():
     return render_template("messages.html", contacts=contacts, search=search)
 
 
+@app.route("/api/heartbeat")
+@login_required
+def api_heartbeat():
+    touch_last_seen(session["user_id"])
+    return jsonify({"ok": True})
+
+
 @app.route("/api/users/search")
 @login_required
 def api_users_search():
@@ -1042,7 +1087,7 @@ def api_users_search():
 def chat_with_user(username):
     db = get_db()
     partner = db.execute(
-        "SELECT id, username, avatar FROM users WHERE username = ?", (username,)
+        "SELECT id, username, avatar, last_seen FROM users WHERE username = ?", (username,)
     ).fetchone()
 
     if not partner:
@@ -1120,17 +1165,42 @@ def api_chat_messages(conv_id):
 
     db.commit()
 
-    return jsonify([
-        {
-            "id": r["id"],
-            "content": r["content"],
-            "created_at": r["created_at"][:16].replace("T", " "),
-            "sender_id": r["sender_id"],
-            "sender_name": r["sender_name"],
-            "is_mine": r["sender_id"] == session["user_id"],
-        }
-        for r in rows
-    ])
+    touch_last_seen(session["user_id"])
+
+    conv = db.execute(
+        "SELECT user1_id, user2_id FROM conversations WHERE id = ?",
+        (conv_id,),
+    ).fetchone()
+    partner_id = None
+    if conv:
+        partner_id = (
+            conv["user2_id"]
+            if conv["user1_id"] == session["user_id"]
+            else conv["user1_id"]
+        )
+    partner_online = False
+    if partner_id:
+        partner = db.execute(
+            "SELECT last_seen FROM users WHERE id = ?",
+            (partner_id,),
+        ).fetchone()
+        if partner:
+            partner_online = is_user_online(partner["last_seen"])
+
+    return jsonify({
+        "messages": [
+            {
+                "id": r["id"],
+                "content": r["content"],
+                "created_at": r["created_at"][:16].replace("T", " "),
+                "sender_id": r["sender_id"],
+                "sender_name": r["sender_name"],
+                "is_mine": r["sender_id"] == session["user_id"],
+            }
+            for r in rows
+        ],
+        "partner_online": partner_online,
+    })
 
 
 @app.route("/admin")
