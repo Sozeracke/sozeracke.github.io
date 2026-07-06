@@ -18,7 +18,7 @@
                     </a>
                     <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
                         {% if g.user.avatar %}
-                            <img src="{{ url_for('static', filename='uploads/' + g.user.avatar) }}"
+                            <img src="{{ media_url(g.user.avatar) }}"
                                  alt="" class="nav-avatar">
                         {% endif %}
                         <span class="nav-user-info">

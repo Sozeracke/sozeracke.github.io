@@ -80,7 +80,8 @@ class DatabaseConnection:
         return sql.replace("?", "%s")
 
     def _insert_returns_id(self, sql):
-        return "post_tags" not in sql.lower()
+        lower = sql.lower()
+        return "post_tags" not in lower and not re.search(r"\binto\s+media\b", lower)
 
     def execute(self, sql, params=()):
         sql = self._adapt_sql(sql)
@@ -222,6 +223,13 @@ def postgres_schema():
             created_at TEXT NOT NULL,
             is_read INTEGER NOT NULL DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS media (
+            filename TEXT PRIMARY KEY,
+            data BYTEA NOT NULL,
+            mime_type TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
     """
 
 
@@ -295,5 +303,12 @@ def sqlite_schema():
             is_read INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE,
             FOREIGN KEY (sender_id) REFERENCES users (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS media (
+            filename TEXT PRIMARY KEY,
+            data BLOB NOT NULL,
+            mime_type TEXT NOT NULL,
+            created_at TEXT NOT NULL
         );
     """

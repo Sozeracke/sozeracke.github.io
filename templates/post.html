@@ -27,7 +27,7 @@
     </header>
 
     {% if post.image %}
-        <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+        <img src="{{ media_url(post.image) }}"
              alt="" class="post-image">
     {% endif %}
 

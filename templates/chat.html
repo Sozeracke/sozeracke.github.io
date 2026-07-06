@@ -21,7 +21,7 @@
                    data-username="{{ contact.username|lower }}">
                     <div class="conversation-avatar">
                         {% if contact.avatar %}
-                            <img src="{{ url_for('static', filename='uploads/' + contact.avatar) }}" alt="">
+                            <img src="{{ media_url(contact.avatar) }}" alt="">
                         {% else %}
                             <span>{{ contact.username[0]|upper }}</span>
                         {% endif %}
@@ -47,7 +47,7 @@
         <div class="chat-header">
             <div class="conversation-avatar conversation-avatar-sm">
                 {% if partner.avatar %}
-                    <img src="{{ url_for('static', filename='uploads/' + partner.avatar) }}" alt="">
+                    <img src="{{ media_url(partner.avatar) }}" alt="">
                 {% else %}
                     <span>{{ partner.username[0]|upper }}</span>
                 {% endif %}

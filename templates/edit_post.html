@@ -36,7 +36,7 @@
             </div>
             {% if post.image %}
                 <div class="current-image">
-                    <img src="{{ url_for('static', filename='uploads/' + post.image) }}" alt="">
+                    <img src="{{ media_url(post.image) }}" alt="">
                     <label class="checkbox-label">
                         <input type="checkbox" name="remove_image">
                         Удалить текущее изображение

@@ -7,6 +7,7 @@ from functools import wraps
 
 from flask import (
     Flask,
+    Response,
     abort,
     flash,
     g,
@@ -47,6 +48,16 @@ if IS_RENDER:
 BASE_DIR = os.path.dirname(__file__)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MIME_TYPES = {
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "webp": "image/webp",
+}
+MEDIA_FILENAME_RE = re.compile(
+    r"^[a-f0-9]+\.(?:png|jpg|jpeg|gif|webp)$", re.IGNORECASE
+)
 
 URL_RE = re.compile(
     r'https?://[^\s<>"{}|\\^`\[\]]+|www\.[^\s<>"{}|\\^`\[\]]+',
@@ -251,6 +262,7 @@ def backfill_site_owner_contacts():
 def init_db():
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     migrate_db()
+    migrate_disk_uploads_to_db()
     promote_admin_from_env()
 
 
@@ -287,6 +299,20 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def media_url(filename):
+    if not filename:
+        return ""
+    return url_for("serve_media", filename=filename)
+
+
+def save_media(filename, data, mime_type):
+    db = get_db()
+    db.execute(
+        "INSERT INTO media (filename, data, mime_type, created_at) VALUES (?, ?, ?, ?)",
+        (filename, data, mime_type, datetime.now().isoformat()),
+    )
+
+
 def save_upload(file):
     if not file or not file.filename:
         return None
@@ -294,16 +320,46 @@ def save_upload(file):
         return None
     ext = file.filename.rsplit(".", 1)[1].lower()
     filename = f"{uuid.uuid4().hex}.{ext}"
-    file.save(os.path.join(UPLOAD_FOLDER, filename))
+    data = file.read()
+    if not data:
+        return None
+    mime_type = MIME_TYPES.get(ext, "application/octet-stream")
+    save_media(filename, data, mime_type)
     return filename
 
 
 def delete_file(filename):
-    if not filename:
+    if not filename or not MEDIA_FILENAME_RE.match(filename):
         return
+    db = get_db()
+    db.execute("DELETE FROM media WHERE filename = ?", (filename,))
     path = os.path.join(UPLOAD_FOLDER, filename)
     if os.path.isfile(path):
         os.remove(path)
+
+
+def migrate_disk_uploads_to_db():
+    if not os.path.isdir(UPLOAD_FOLDER):
+        return
+    db = get_db()
+    migrated = 0
+    for name in os.listdir(UPLOAD_FOLDER):
+        if not MEDIA_FILENAME_RE.match(name):
+            continue
+        if db.execute("SELECT filename FROM media WHERE filename = ?", (name,)).fetchone():
+            continue
+        path = os.path.join(UPLOAD_FOLDER, name)
+        if not os.path.isfile(path):
+            continue
+        ext = name.rsplit(".", 1)[1].lower()
+        with open(path, "rb") as handle:
+            data = handle.read()
+        if not data:
+            continue
+        save_media(name, data, MIME_TYPES.get(ext, "application/octet-stream"))
+        migrated += 1
+    if migrated:
+        db.commit()
 
 
 def is_admin():
@@ -540,6 +596,36 @@ def get_conversation_partner(conv_id, user_id):
     ).fetchone()
 
 
+@app.route("/media/<filename>")
+def serve_media(filename):
+    if not MEDIA_FILENAME_RE.match(filename):
+        abort(404)
+    db = get_db()
+    row = db.execute(
+        "SELECT data, mime_type FROM media WHERE filename = ?",
+        (filename,),
+    ).fetchone()
+    if not row:
+        path = os.path.join(UPLOAD_FOLDER, filename)
+        if os.path.isfile(path):
+            ext = filename.rsplit(".", 1)[1].lower()
+            with open(path, "rb") as handle:
+                data = handle.read()
+            mime_type = MIME_TYPES.get(ext, "application/octet-stream")
+            save_media(filename, data, mime_type)
+            db.commit()
+            return Response(data, mimetype=mime_type, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        abort(404)
+    data = row["data"]
+    if isinstance(data, memoryview):
+        data = data.tobytes()
+    return Response(
+        data,
+        mimetype=row["mime_type"],
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
 @app.route("/health")
 def health():
     return jsonify({
@@ -595,6 +681,7 @@ def inject_globals():
         "site_url": app.config["SITE_URL"],
         "public_url": app.config["PUBLIC_URL"],
         "site_name": SITE_NAME,
+        "media_url": media_url,
         "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
     }
 
