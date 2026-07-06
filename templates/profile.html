@@ -28,8 +28,6 @@
         </p>
         {% if profile_user.bio %}
             <div class="profile-bio">{{ profile_user.bio | linkify }}</div>
-        {% else %}
-            <p class="profile-bio profile-bio-empty">Пользователь пока ничего о себе не написал.</p>
         {% endif %}
         <div class="profile-actions">
             {% if g.user and g.user.id == profile_user.id %}
