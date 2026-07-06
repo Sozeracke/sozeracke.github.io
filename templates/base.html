@@ -4,18 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-inner">
             <a href="{{ url_for('index') }}" class="logo">{{ site_name }}</a>
-            <div class="nav-links">
-                {% if g.user %}
-                    <a href="{{ url_for('messages_inbox') }}" class="btn btn-ghost btn-sm nav-messages">
-                        Сообщения
+
+            {% if g.user %}
+                <div class="nav-spacer"></div>
+
+                <div class="nav-toolbar">
+                    <a href="{{ url_for('messages_inbox') }}" class="nav-messages-btn">
+                        <span class="nav-messages-icon" aria-hidden="true">💬</span>
+                        <span class="nav-messages-label">Сообщения</span>
                         {% if unread_messages %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
                     </a>
+                    {% if g.user.is_admin %}
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
+                        <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
+                    {% endif %}
+                </div>
+
+                <div class="nav-account">
                     <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
                         {% if g.user.avatar %}
                             <img src="{{ media_url(g.user.avatar) }}"
@@ -31,18 +42,15 @@
                             {% endwith %}
                         </span>
                     </a>
-                    {% if g.user.is_admin %}
-                        <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
-                    {% endif %}
-                    {% if g.user.is_admin %}
-                        <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
-                    {% endif %}
-                    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Выйти</a>
-                {% else %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm nav-logout">Выйти</a>
+                </div>
+            {% else %}
+                <div class="nav-spacer"></div>
+                <div class="nav-auth">
                     <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm">Войти</a>
                     <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Регистрация</a>
-                {% endif %}
-            </div>
+                </div>
+            {% endif %}
         </div>
     </nav>
 

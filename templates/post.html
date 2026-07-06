@@ -14,8 +14,8 @@
         {% elif is_post_private(post) %}
             <div class="private-banner">
                 Приватный пост — доступен только выбранным пользователям.
-                {% if g.user and g.user.is_admin %}
-                    <a href="{{ url_for('admin_post_access', post_id=post.id) }}">Управление доступом</a>
+                {% if g.user and can_manage_post_access(post) %}
+                    <a href="{{ url_for('post_access', post_id=post.id) }}">Управление доступом</a>
                 {% endif %}
             </div>
         {% endif %}

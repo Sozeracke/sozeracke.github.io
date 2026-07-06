@@ -490,6 +490,22 @@ def can_view_post(post, user=None):
     return user_id and user_has_post_access(post["id"], user_id)
 
 
+def can_manage_post_access(post, user=None):
+    user = user if user is not None else getattr(g, "user", None)
+    if not user:
+        return False
+    if user.get("is_admin"):
+        return True
+    author_id = post.get("author_id") or post.get("user_id")
+    return bool(author_id and user["id"] == author_id)
+
+
+def post_access_back_url(post):
+    if g.user and g.user.get("is_admin"):
+        return url_for("admin_panel")
+    return url_for("view_post", post_id=post["id"])
+
+
 def get_post_access_users(post_id):
     db = get_db()
     return db.execute("""
@@ -857,6 +873,7 @@ def inject_globals():
         "is_post_scheduled": is_post_scheduled,
         "is_post_published": is_post_published,
         "is_post_private": is_post_private,
+        "can_manage_post_access": can_manage_post_access,
         "format_datetime_local": format_datetime_local,
     }
 
@@ -1234,7 +1251,7 @@ def create_post():
                     )
                 elif is_private:
                     flash(
-                        "Приватный пост создан. Выдайте доступ пользователям в панели администратора.",
+                        "Приватный пост создан. Выдайте доступ на странице поста.",
                         "success",
                     )
                 else:
@@ -1662,9 +1679,9 @@ def api_chat_messages(conv_id):
     })
 
 
-@app.route("/admin/post/<int:post_id>/access", methods=["GET", "POST"])
-@admin_required
-def admin_post_access(post_id):
+@app.route("/post/<int:post_id>/access", methods=["GET", "POST"])
+@login_required
+def post_access(post_id):
     db = get_db()
     post = db.execute("""
         SELECT posts.id, posts.title, posts.is_private, posts.user_id,
@@ -1676,11 +1693,15 @@ def admin_post_access(post_id):
 
     if not post:
         flash("Пост не найден.", "error")
-        return redirect(url_for("admin_panel"))
+        return redirect(url_for("index"))
+
+    if not can_manage_post_access(post):
+        flash("У вас нет прав управлять доступом к этому посту.", "error")
+        return redirect(url_for("view_post", post_id=post_id))
 
     if not post["is_private"]:
         flash("Этот пост публичный — управление доступом не требуется.", "info")
-        return redirect(url_for("admin_panel"))
+        return redirect(post_access_back_url(post))
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -1721,7 +1742,7 @@ def admin_post_access(post_id):
             if target:
                 flash(f"Доступ отозван у {target['username']}.", "info")
 
-        return redirect(url_for("admin_post_access", post_id=post_id))
+        return redirect(url_for("post_access", post_id=post_id))
 
     granted_users = get_post_access_users(post_id)
     available_users = db.execute("""
@@ -1732,11 +1753,18 @@ def admin_post_access(post_id):
     """, (post["user_id"], post_id)).fetchall()
 
     return render_template(
-        "admin_post_access.html",
+        "post_access.html",
         post=post,
         granted_users=granted_users,
         available_users=available_users,
+        back_url=post_access_back_url(post),
     )
+
+
+@app.route("/admin/post/<int:post_id>/access", methods=["GET", "POST"])
+@login_required
+def admin_post_access_redirect(post_id):
+    return post_access(post_id)
 
 
 @app.route("/admin")

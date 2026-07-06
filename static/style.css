@@ -63,7 +63,11 @@ body {
 .nav-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 16px;
+}
+
+.nav-spacer {
+    flex: 1;
 }
 
 .logo {
@@ -72,21 +76,40 @@ body {
     color: var(--primary);
     text-decoration: none;
     letter-spacing: -0.5px;
+    flex-shrink: 0;
 }
 
-.nav-links {
+.nav-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.nav-account {
     display: flex;
     align-items: center;
     gap: 12px;
+    padding-left: 16px;
+    border-left: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .nav-user {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: var(--text-muted);
     font-size: 0.9rem;
     text-decoration: none;
+    transition: color 0.2s;
 }
 
 .nav-user:hover {
@@ -96,14 +119,50 @@ body {
 .nav-user-info {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 2px;
+    text-align: right;
 }
 
 .nav-username {
     display: inline-flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
+}
+
+.nav-user-info .online-status {
+    justify-content: flex-end;
+}
+
+.nav-messages-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.nav-messages-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: rgba(108, 99, 255, 0.45);
+}
+
+.nav-messages-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.nav-logout {
+    white-space: nowrap;
 }
 
 /* Buttons */
@@ -820,20 +879,6 @@ body {
     flex-wrap: wrap;
 }
 
-.nav-user {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-.nav-user:hover {
-    color: var(--text);
-}
-
 .nav-avatar {
     width: 28px;
     height: 28px;
@@ -1259,10 +1304,6 @@ body {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-}
-
-.nav-messages {
-    position: relative;
 }
 
 .nav-badge {
@@ -1702,13 +1743,43 @@ body {
     }
 }
 
-@media (max-width: 600px) {
-    .nav-links {
+@media (max-width: 768px) {
+    .nav-inner {
+        gap: 10px;
+    }
+
+    .nav-toolbar {
+        gap: 6px;
+    }
+
+    .nav-messages-label {
+        display: none;
+    }
+
+    .nav-messages-btn {
+        padding: 8px 10px;
+    }
+
+    .nav-account {
+        padding-left: 10px;
         gap: 8px;
     }
 
-    .nav-user span {
+    .nav-user-info .online-label {
         display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .nav-toolbar .btn {
+        display: none;
+    }
+
+    .nav-username {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .profile-header {

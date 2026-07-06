@@ -56,8 +56,8 @@
                 </label>
                 <span class="form-hint">
                     Виден только вам, администраторам и пользователям с доступом.
-                    {% if is_private_checked and g.user.is_admin %}
-                        <a href="{{ url_for('admin_post_access', post_id=post.id) }}">Управление доступом</a>
+                    {% if is_private_checked and can_manage_post_access(post) %}
+                        <a href="{{ url_for('post_access', post_id=post.id) }}">Управление доступом</a>
                     {% endif %}
                 </span>
             </div>

@@ -4,7 +4,7 @@
 
 {% block content %}
 <section class="admin-header">
-    <a href="{{ url_for('admin_panel') }}" class="back-link">← Панель администратора</a>
+    <a href="{{ back_url }}" class="back-link">← Назад</a>
     <h1>Доступ к приватному посту</h1>
     <p class="admin-subtitle">
         <a href="{{ url_for('view_post', post_id=post.id) }}">{{ post.title }}</a>

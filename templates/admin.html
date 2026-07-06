@@ -64,7 +64,7 @@
                             <td class="admin-actions">
                                 <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost btn-sm">Открыть</a>
                                 {% if is_post_private(post) %}
-                                    <a href="{{ url_for('admin_post_access', post_id=post.id) }}" class="btn btn-ghost btn-sm">Доступ</a>
+                                    <a href="{{ url_for('post_access', post_id=post.id) }}" class="btn btn-ghost btn-sm">Доступ</a>
                                 {% endif %}
                                 <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}"
                                       onsubmit="return confirm('Удалить пост «{{ post.title }}»?')">
