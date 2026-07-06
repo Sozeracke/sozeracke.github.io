@@ -433,19 +433,12 @@ def get_or_create_tag(name):
     if existing:
         return existing["id"]
     now = datetime.now().isoformat()
-    try:
-        cur = db.execute(
-            "INSERT INTO tags (name, slug, created_at) VALUES (?, ?, ?)",
-            (name, slug, now),
-        )
-        if cur.lastrowid:
-            return cur.lastrowid
-    except Exception:
-        app.logger.exception("get_or_create_tag insert failed for %r", name)
-        try:
-            db._conn.rollback()
-        except Exception:
-            pass
+    cur = db.execute(
+        "INSERT INTO tags (name, slug, created_at) VALUES (?, ?, ?)",
+        (name, slug, now),
+    )
+    if cur.lastrowid:
+        return cur.lastrowid
     existing = find_tag()
     return existing["id"] if existing else None
 

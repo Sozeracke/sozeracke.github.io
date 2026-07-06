@@ -75,9 +75,12 @@ class DatabaseConnection:
         if sql.strip().upper().startswith("INSERT") and "ON CONFLICT" not in sql.upper():
             if "post_tags" in sql.lower():
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
-            elif " tags " in f" {sql.lower()} ":
-                sql = sql.rstrip().rstrip(";") + " ON CONFLICT (slug) DO NOTHING"
+            elif re.search(r"\binto\s+tags\b", sql, re.IGNORECASE):
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
         return sql.replace("?", "%s")
+
+    def _insert_returns_id(self, sql):
+        return "post_tags" not in sql.lower()
 
     def execute(self, sql, params=()):
         sql = self._adapt_sql(sql)
@@ -87,14 +90,20 @@ class DatabaseConnection:
             cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             is_insert = sql.strip().upper().startswith("INSERT")
             exec_sql = sql
-            if is_insert and "RETURNING" not in sql.upper():
+            use_returning = (
+                is_insert
+                and "RETURNING" not in sql.upper()
+                and self._insert_returns_id(sql)
+            )
+            if use_returning:
                 exec_sql = sql.rstrip().rstrip(";") + " RETURNING id"
             cur.execute(exec_sql, params)
             lastrowid = None
             if is_insert:
-                row = cur.fetchone()
-                if row:
-                    lastrowid = row.get("id")
+                if use_returning:
+                    row = cur.fetchone()
+                    if row:
+                        lastrowid = row.get("id")
                 return CursorResult(lastrowid=lastrowid)
             rows = cur.fetchall() if cur.description else []
             return CursorResult(rows=rows)
