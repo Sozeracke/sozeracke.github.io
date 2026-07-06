@@ -26,6 +26,13 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.config["SITE_URL"] = os.environ.get("SITE_URL", "http://127.0.0.1:5000")
+app.config["PUBLIC_URL"] = os.environ.get(
+    "PUBLIC_URL", "https://sozeracke-blog.onrender.com"
+)
+
+if os.environ.get("RENDER"):
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 BASE_DIR = os.path.dirname(__file__)
 DATABASE = os.path.join(BASE_DIR, "blog.db")
@@ -543,6 +550,7 @@ def inject_globals():
         "is_admin": is_admin,
         "unread_messages": getattr(g, "unread_messages", 0),
         "site_url": app.config["SITE_URL"],
+        "public_url": app.config["PUBLIC_URL"],
     }
 
 
@@ -698,13 +706,17 @@ def register():
             if existing:
                 errors.append("Пользователь с таким именем или email уже существует.")
             else:
+                admin_username = os.environ.get("ADMIN_USERNAME", "").strip()
+                is_new_admin = 1 if admin_username and username == admin_username else 0
                 cur = db.execute(
-                    "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                    """INSERT INTO users (username, email, password_hash, created_at, is_admin)
+                       VALUES (?, ?, ?, ?, ?)""",
                     (
                         username,
                         email,
                         generate_password_hash(password),
                         datetime.now().isoformat(),
+                        is_new_admin,
                     ),
                 )
                 new_user_id = cur.lastrowid

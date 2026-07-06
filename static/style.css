@@ -1428,9 +1428,15 @@ body {
 
 .footer-inner {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 6px 10px;
+}
+
+.footer-separator {
+    color: var(--text-muted);
+    opacity: 0.5;
 }
 
 .footer-domain {

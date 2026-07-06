@@ -17,3 +17,5 @@ services:
         value: Sozeracke
       - key: SITE_URL
         value: https://sozeracke.github.io
+      - key: PUBLIC_URL
+        value: https://sozeracke-blog.onrender.com
