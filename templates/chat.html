@@ -30,6 +30,9 @@
                     <div class="conversation-info">
                         <div class="conversation-top">
                             <strong>{{ contact.username }}</strong>
+                            {% with is_admin=contact.is_admin %}
+                                {% include '_admin_badge.html' %}
+                            {% endwith %}
                         </div>
                         {% if contact.last_message %}
                             <p class="conversation-preview">{{ contact.last_message[:40] }}...</p>
@@ -55,6 +58,9 @@
             <div>
                 <div class="chat-header-name">
                     <strong>{{ partner.username }}</strong>
+                    {% with is_admin=partner.is_admin %}
+                        {% include '_admin_badge.html' %}
+                    {% endwith %}
                     {% with last_seen=partner.last_seen, check_user_id=none, status_id='partner-online-status' %}
                         {% include '_online_status.html' %}
                     {% endwith %}
@@ -70,7 +76,10 @@
                 <div class="chat-bubble {% if msg.sender_id == g.user.id %}mine{% else %}theirs{% endif %}"
                      data-id="{{ msg.id }}">
                     {% if msg.sender_id != g.user.id %}
-                        <span class="chat-sender">{{ msg.sender_name }}</span>
+                        <span class="chat-sender">
+                            {{ msg.sender_name }}
+                            {% if msg.sender_is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+                        </span>
                     {% endif %}
                     <div class="chat-text">{{ msg.content | linkify }}</div>
                     <time class="chat-time">{{ msg.created_at[:16].replace('T', ' ') }}</time>
@@ -123,7 +132,11 @@
         div.dataset.id = msg.id;
         let html = '';
         if (!msg.is_mine) {
-            html += '<span class="chat-sender">' + msg.sender_name + '</span>';
+            html += '<span class="chat-sender">' + msg.sender_name;
+            if (msg.sender_is_admin) {
+                html += ' <span class="badge badge-admin">админ</span>';
+            }
+            html += '</span>';
         }
         html += '<div class="chat-text">' + linkifyText(msg.content) + '</div>';
         html += '<time class="chat-time">' + msg.created_at + '</time>';

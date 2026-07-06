@@ -39,6 +39,9 @@
                         <div class="conversation-info">
                             <div class="conversation-top">
                                 <strong>{{ contact.username }}</strong>
+                                {% with is_admin=contact.is_admin %}
+                                    {% include '_admin_badge.html' %}
+                                {% endwith %}
                                 {% if contact.last_message_at %}
                                     <time>{{ contact.last_message_at[:16].replace('T', ' ') }}</time>
                                 {% endif %}

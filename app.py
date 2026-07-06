@@ -425,7 +425,7 @@ def get_categories():
 def get_message_contacts(user_id, search=""):
     db = get_db()
     query = """
-        SELECT u.id, u.username, u.avatar, u.last_seen,
+        SELECT u.id, u.username, u.avatar, u.last_seen, u.is_admin,
                conv.id AS conv_id,
                (SELECT content FROM messages WHERE messages.conversation_id = conv.id
                 ORDER BY messages.created_at DESC LIMIT 1) AS last_message,
@@ -1286,7 +1286,8 @@ def chat_with_user(username):
 def _chat_with_user(username):
     db = get_db()
     partner = db.execute(
-        "SELECT id, username, avatar, last_seen FROM users WHERE username = ?", (username,)
+        "SELECT id, username, avatar, last_seen, is_admin FROM users WHERE username = ?",
+        (username,),
     ).fetchone()
 
     if not partner:
@@ -1324,7 +1325,7 @@ def _chat_with_user(username):
 
     messages = db.execute("""
         SELECT messages.id, messages.content, messages.created_at, messages.sender_id,
-               users.username AS sender_name
+               users.username AS sender_name, users.is_admin AS sender_is_admin
         FROM messages
         JOIN users ON users.id = messages.sender_id
         WHERE messages.conversation_id = ?
@@ -1358,7 +1359,7 @@ def api_chat_messages(conv_id):
 
     rows = db.execute("""
         SELECT messages.id, messages.content, messages.created_at, messages.sender_id,
-               users.username AS sender_name
+               users.username AS sender_name, users.is_admin AS sender_is_admin
         FROM messages
         JOIN users ON users.id = messages.sender_id
         WHERE messages.conversation_id = ? AND messages.id > ?
@@ -1397,6 +1398,7 @@ def api_chat_messages(conv_id):
                 "created_at": r["created_at"][:16].replace("T", " "),
                 "sender_id": r["sender_id"],
                 "sender_name": r["sender_name"],
+                "sender_is_admin": bool(r["sender_is_admin"]),
                 "is_mine": r["sender_id"] == session["user_id"],
             }
             for r in rows

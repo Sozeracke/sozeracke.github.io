@@ -1344,8 +1344,10 @@ body {
 
 .conversation-top {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 6px;
     margin-bottom: 4px;
 }
 
@@ -1488,7 +1490,10 @@ body {
 }
 
 .chat-sender {
-    display: block;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--primary);
