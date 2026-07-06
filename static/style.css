@@ -1457,15 +1457,58 @@ body {
     overflow-y: auto;
 }
 
+.conversation-row {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border);
+}
+
+.conversation-row.is-pinned .conversation-item {
+    background: rgba(108, 99, 255, 0.08);
+}
+
 .conversation-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 20px;
+    flex: 1;
+    min-width: 0;
+    padding: 14px 16px 14px 20px;
     text-decoration: none;
     color: var(--text);
-    border-bottom: 1px solid var(--border);
+    border-bottom: none;
     transition: background 0.2s;
+}
+
+.conversation-pin-form {
+    display: flex;
+    align-items: center;
+    padding: 0 12px 0 0;
+    flex-shrink: 0;
+}
+
+.conversation-pin-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0.3;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 6px;
+    border-radius: 6px;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.conversation-pin-btn:hover,
+.conversation-pin-btn.is-pinned {
+    opacity: 1;
+    background: rgba(108, 99, 255, 0.15);
+}
+
+.conversation-pin-label {
+    font-size: 0.75rem;
+    line-height: 1;
+    opacity: 0.85;
 }
 
 .conversation-item:hover,

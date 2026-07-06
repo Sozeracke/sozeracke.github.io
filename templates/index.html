@@ -11,13 +11,7 @@
     <div class="main-content">
         <section class="hero hero-compact">
             <h1>{{ page_title }}</h1>
-            {% if show_user_online and g.user %}
-                <div class="hero-online">
-                    {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
-                        {% include '_online_status.html' %}
-                    {% endwith %}
-                </div>
-            {% elif page_subtitle %}
+            {% if page_subtitle %}
                 <p>{{ page_subtitle }}</p>
             {% endif %}
             {% if active_category or active_tag %}

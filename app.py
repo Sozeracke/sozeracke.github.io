@@ -565,9 +565,16 @@ def get_categories():
     """, (cutoff,)).fetchall()
 
 
-def get_message_contacts(user_id, search="", admins_only=False):
+def get_message_contacts(user_id, search="", admins_only=False, admin_pins=False):
     db = get_db()
-    query = """
+    pin_field = """
+               , EXISTS (
+                   SELECT 1 FROM pinned_conversations pc
+                   WHERE pc.user_id = ? AND pc.conversation_id = conv.id
+               ) AS is_pinned
+    """ if admin_pins else ", 0 AS is_pinned"
+
+    query = f"""
         SELECT u.id, u.username, u.avatar, u.last_seen, u.is_admin,
                conv.id AS conv_id,
                (SELECT content FROM messages WHERE messages.conversation_id = conv.id
@@ -576,6 +583,7 @@ def get_message_contacts(user_id, search="", admins_only=False):
                 ORDER BY messages.created_at DESC LIMIT 1) AS last_message_at,
                (SELECT COUNT(*) FROM messages WHERE messages.conversation_id = conv.id
                 AND messages.sender_id != ? AND messages.is_read = 0) AS unread_count
+               {pin_field}
         FROM users u
         LEFT JOIN conversations conv ON (
             (conv.user1_id = ? AND conv.user2_id = u.id) OR
@@ -584,18 +592,32 @@ def get_message_contacts(user_id, search="", admins_only=False):
         WHERE u.id != ?
     """
     params = [user_id, user_id, user_id, user_id]
+    if admin_pins:
+        params.append(user_id)
     if admins_only:
         query += " AND u.is_admin = 1"
     if search:
         query += " AND u.username LIKE ?"
         params.append(f"%{search}%")
-    query += """
-        ORDER BY (
+
+    order_parts = []
+    if admin_pins:
+        params.append(user_id)
+        order_parts.append("""
+            CASE WHEN EXISTS (
+                SELECT 1 FROM pinned_conversations pc
+                WHERE pc.user_id = ? AND pc.conversation_id = conv.id
+            ) THEN 0 ELSE 1 END
+        """)
+    order_parts.append("""
+        (
             SELECT MAX(messages.created_at)
             FROM messages
             WHERE messages.conversation_id = conv.id
-        ) DESC NULLS LAST, u.username ASC
-    """
+        ) DESC NULLS LAST
+    """)
+    order_parts.append("u.username ASC")
+    query += " ORDER BY " + ", ".join(order_parts)
     return db.execute(query, params).fetchall()
 
 
@@ -888,7 +910,6 @@ def render_posts_page(category_slug=None, tag_slug=None):
 
     page_title = "Последние посты"
     page_subtitle = None
-    show_user_online = not category_slug and not tag_slug
     active_category = None
     active_tag = None
 
@@ -913,7 +934,6 @@ def render_posts_page(category_slug=None, tag_slug=None):
         tags=tags,
         page_title=page_title,
         page_subtitle=page_subtitle,
-        show_user_online=show_user_online,
         active_category=active_category,
         active_tag=active_tag,
     )
@@ -1494,13 +1514,52 @@ def delete_comment(comment_id):
     return redirect(url_for("view_post", post_id=post_id))
 
 
+@app.route("/messages/conversation/<int:conv_id>/pin", methods=["POST"])
+@admin_required
+def toggle_pin_conversation(conv_id):
+    if not user_in_conversation(conv_id, session["user_id"]):
+        abort(403)
+
+    db = get_db()
+    existing = db.execute(
+        "SELECT 1 FROM pinned_conversations WHERE user_id = ? AND conversation_id = ?",
+        (session["user_id"], conv_id),
+    ).fetchone()
+
+    if existing:
+        db.execute(
+            "DELETE FROM pinned_conversations WHERE user_id = ? AND conversation_id = ?",
+            (session["user_id"], conv_id),
+        )
+        db.commit()
+        flash("Чат откреплён.", "info")
+    else:
+        db.execute(
+            """INSERT INTO pinned_conversations (user_id, conversation_id, pinned_at)
+               VALUES (?, ?, ?)""",
+            (session["user_id"], conv_id, datetime.now().isoformat()),
+        )
+        db.commit()
+        flash("Чат закреплён.", "success")
+
+    next_url = request.form.get("next") or request.referrer
+    if not next_url:
+        next_url = url_for("messages_inbox")
+    return redirect(next_url)
+
+
 @app.route("/messages")
 @login_required
 def messages_inbox():
     try:
         admins_only = not g.user["is_admin"]
         search = request.args.get("q", "").strip() if g.user["is_admin"] else ""
-        contacts = get_message_contacts(g.user["id"], search, admins_only=admins_only)
+        contacts = get_message_contacts(
+            g.user["id"],
+            search,
+            admins_only=admins_only,
+            admin_pins=g.user["is_admin"],
+        )
         return render_template(
             "messages.html",
             contacts=contacts,
@@ -1605,7 +1664,11 @@ def _chat_with_user(username):
     """, (conv_id,)).fetchall()
 
     admins_only = not g.user["is_admin"]
-    contacts = get_message_contacts(g.user["id"], admins_only=admins_only)
+    contacts = get_message_contacts(
+        g.user["id"],
+        admins_only=admins_only,
+        admin_pins=g.user["is_admin"],
+    )
 
     return render_template(
         "chat.html",

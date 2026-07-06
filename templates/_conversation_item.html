@@ -1,0 +1,56 @@
+<div class="conversation-row {% if contact.is_pinned %}is-pinned{% endif %}">
+    <a href="{{ url_for('chat_with_user', username=contact.username) }}"
+       class="conversation-item {% if active_username and contact.username == active_username %}active{% endif %} {% if contact.unread_count %}unread{% endif %}"
+       data-username="{{ contact.username|lower }}">
+        <div class="conversation-avatar">
+            {% if contact.avatar %}
+                <img src="{{ media_url(contact.avatar) }}" alt="">
+            {% else %}
+                <span>{{ contact.username[0]|upper }}</span>
+            {% endif %}
+            <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
+                  title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
+        </div>
+        <div class="conversation-info">
+            <div class="conversation-top">
+                <strong>{{ contact.username }}</strong>
+                {% if contact.is_pinned %}
+                    <span class="conversation-pin-label" title="Закреплён">📌</span>
+                {% endif %}
+                {% with is_admin=contact.is_admin %}
+                    {% include '_admin_badge.html' %}
+                {% endwith %}
+                {% if show_message_time and contact.last_message_at %}
+                    <time>{{ contact.last_message_at[:16].replace('T', ' ') }}</time>
+                {% endif %}
+            </div>
+            {% if contact.last_message or show_message_time|default(false) %}
+                <p class="conversation-preview">
+                    {% if contact.last_message %}
+                        {% if show_message_time|default(false) %}
+                            {{ contact.last_message[:60] }}{% if contact.last_message|length > 60 %}...{% endif %}
+                        {% else %}
+                            {{ contact.last_message[:40] }}{% if contact.last_message|length > 40 %}...{% endif %}
+                        {% endif %}
+                    {% else %}
+                        <span class="no-messages-yet">Начать диалог</span>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+        {% if contact.unread_count %}
+            <span class="conversation-unread">{{ contact.unread_count }}</span>
+        {% endif %}
+    </a>
+    {% if g.user.is_admin and contact.conv_id %}
+        <form method="POST"
+              action="{{ url_for('toggle_pin_conversation', conv_id=contact.conv_id) }}"
+              class="conversation-pin-form">
+            <input type="hidden" name="next"
+                   value="{{ request.path }}{% if request.query_string %}?{{ request.query_string }}{% endif %}">
+            <button type="submit"
+                    class="conversation-pin-btn {% if contact.is_pinned %}is-pinned{% endif %}"
+                    title="{% if contact.is_pinned %}Открепить{% else %}Закрепить{% endif %}">📌</button>
+        </form>
+    {% endif %}
+</div>

@@ -22,40 +22,9 @@
         {% if contacts %}
             <div class="conversation-list" id="contacts-list">
                 {% for contact in contacts %}
-                    <a href="{{ url_for('chat_with_user', username=contact.username) }}"
-                       class="conversation-item {% if contact.unread_count %}unread{% endif %}"
-                       data-username="{{ contact.username|lower }}">
-                        <div class="conversation-avatar">
-                            {% if contact.avatar %}
-                                <img src="{{ media_url(contact.avatar) }}" alt="">
-                            {% else %}
-                                <span>{{ contact.username[0]|upper }}</span>
-                            {% endif %}
-                            <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
-                                  title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
-                        </div>
-                        <div class="conversation-info">
-                            <div class="conversation-top">
-                                <strong>{{ contact.username }}</strong>
-                                {% with is_admin=contact.is_admin %}
-                                    {% include '_admin_badge.html' %}
-                                {% endwith %}
-                                {% if contact.last_message_at %}
-                                    <time>{{ contact.last_message_at[:16].replace('T', ' ') }}</time>
-                                {% endif %}
-                            </div>
-                            <p class="conversation-preview">
-                                {% if contact.last_message %}
-                                    {{ contact.last_message[:60] }}{% if contact.last_message|length > 60 %}...{% endif %}
-                                {% else %}
-                                    <span class="no-messages-yet">Начать диалог</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                        {% if contact.unread_count %}
-                            <span class="conversation-unread">{{ contact.unread_count }}</span>
-                        {% endif %}
-                    </a>
+                    {% with show_message_time=true %}
+                        {% include '_conversation_item.html' %}
+                    {% endwith %}
                 {% endfor %}
             </div>
         {% else %}
@@ -80,6 +49,9 @@
             <div class="empty-icon">💬</div>
             <h2>{% if admins_only %}Выберите администратора{% else %}Выберите пользователя{% endif %}</h2>
             <p>{% if admins_only %}Напишите администратору сайта{% else %}Выберите собеседника из списка слева{% endif %}</p>
+            {% if g.user.is_admin %}
+                <p class="form-hint">Нажмите 📌 справа от чата, чтобы закрепить его вверху списка.</p>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -95,9 +67,10 @@
         clearTimeout(debounce);
         const q = input.value.trim().toLowerCase();
         debounce = setTimeout(function() {
-            list.querySelectorAll('.conversation-item').forEach(function(item) {
-                const name = item.dataset.username || '';
-                item.style.display = !q || name.includes(q) ? '' : 'none';
+            list.querySelectorAll('.conversation-row').forEach(function(row) {
+                const item = row.querySelector('.conversation-item');
+                const name = item ? (item.dataset.username || '') : '';
+                row.style.display = !q || name.includes(q) ? '' : 'none';
             });
         }, 150);
     });

@@ -16,32 +16,9 @@
 
         <div class="conversation-list" id="contacts-list">
             {% for contact in contacts %}
-                <a href="{{ url_for('chat_with_user', username=contact.username) }}"
-                   class="conversation-item {% if contact.username == partner.username %}active{% endif %} {% if contact.unread_count %}unread{% endif %}"
-                   data-username="{{ contact.username|lower }}">
-                    <div class="conversation-avatar">
-                        {% if contact.avatar %}
-                            <img src="{{ media_url(contact.avatar) }}" alt="">
-                        {% else %}
-                            <span>{{ contact.username[0]|upper }}</span>
-                        {% endif %}
-                        <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"></span>
-                    </div>
-                    <div class="conversation-info">
-                        <div class="conversation-top">
-                            <strong>{{ contact.username }}</strong>
-                            {% with is_admin=contact.is_admin %}
-                                {% include '_admin_badge.html' %}
-                            {% endwith %}
-                        </div>
-                        {% if contact.last_message %}
-                            <p class="conversation-preview">{{ contact.last_message[:40] }}...</p>
-                        {% endif %}
-                    </div>
-                    {% if contact.unread_count %}
-                        <span class="conversation-unread">{{ contact.unread_count }}</span>
-                    {% endif %}
-                </a>
+                {% with active_username=partner.username, show_message_time=false %}
+                    {% include '_conversation_item.html' %}
+                {% endwith %}
             {% endfor %}
         </div>
     </aside>
@@ -104,9 +81,10 @@
     if (input && list) {
         input.addEventListener('input', function() {
             const q = input.value.trim().toLowerCase();
-            list.querySelectorAll('.conversation-item').forEach(function(item) {
-                const name = item.dataset.username || '';
-                item.style.display = !q || name.includes(q) ? '' : 'none';
+            list.querySelectorAll('.conversation-row').forEach(function(row) {
+                const item = row.querySelector('.conversation-item');
+                const name = item ? (item.dataset.username || '') : '';
+                row.style.display = !q || name.includes(q) ? '' : 'none';
             });
         });
     }

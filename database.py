@@ -242,6 +242,13 @@ def postgres_schema():
             is_read INTEGER NOT NULL DEFAULT 0
         );
 
+        CREATE TABLE IF NOT EXISTS pinned_conversations (
+            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            conversation_id INTEGER NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
+            pinned_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, conversation_id)
+        );
+
         CREATE TABLE IF NOT EXISTS media (
             filename TEXT PRIMARY KEY,
             data BYTEA NOT NULL,
@@ -332,6 +339,15 @@ def sqlite_schema():
             is_read INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE,
             FOREIGN KEY (sender_id) REFERENCES users (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS pinned_conversations (
+            user_id INTEGER NOT NULL,
+            conversation_id INTEGER NOT NULL,
+            pinned_at TEXT NOT NULL,
+            PRIMARY KEY (user_id, conversation_id),
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS media (
