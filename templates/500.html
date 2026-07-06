@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Ошибка сервера — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="empty-state">
+    <div class="empty-icon">⚠️</div>
+    <h2>Что-то пошло не так</h2>
+    <p>Сервер не смог обработать запрос. Подождите немного и попробуйте снова.</p>
+    <div class="error-actions">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+        <a href="javascript:location.reload()" class="btn btn-ghost">Обновить</a>
+    </div>
+</div>
+{% endblock %}

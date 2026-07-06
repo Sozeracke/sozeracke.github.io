@@ -75,6 +75,8 @@ class DatabaseConnection:
         if sql.strip().upper().startswith("INSERT") and "ON CONFLICT" not in sql.upper():
             if "post_tags" in sql.lower():
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+            elif re.search(r"\binto\s+conversations\b", sql, re.IGNORECASE):
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+tags\b", sql, re.IGNORECASE):
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
         return sql.replace("?", "%s")

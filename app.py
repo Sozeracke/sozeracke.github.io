@@ -369,7 +369,8 @@ def is_admin():
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if "user_id" not in session:
+        if "user_id" not in session or not g.user:
+            session.pop("user_id", None)
             flash("Войдите, чтобы продолжить.", "warning")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
@@ -426,7 +427,13 @@ def get_message_contacts(user_id, search=""):
     if search:
         query += " AND u.username LIKE ?"
         params.append(f"%{search}%")
-    query += " ORDER BY CASE WHEN last_message_at IS NOT NULL THEN 0 ELSE 1 END, last_message_at DESC, u.username ASC"
+    query += """
+        ORDER BY (
+            SELECT MAX(messages.created_at)
+            FROM messages
+            WHERE messages.conversation_id = conv.id
+        ) DESC NULLS LAST, u.username ASC
+    """
     return db.execute(query, params).fetchall()
 
 
@@ -557,19 +564,33 @@ def get_or_create_conversation(user_id, other_user_id):
         return None
     a, b = min(user_id, other_user_id), max(user_id, other_user_id)
     db = get_db()
-    conv = db.execute(
-        "SELECT id FROM conversations WHERE user1_id = ? AND user2_id = ?",
-        (a, b),
-    ).fetchone()
+
+    def find_conversation():
+        return db.execute(
+            "SELECT id FROM conversations WHERE user1_id = ? AND user2_id = ?",
+            (a, b),
+        ).fetchone()
+
+    conv = find_conversation()
     if conv:
         return conv["id"]
     now = datetime.now().isoformat()
-    cur = db.execute(
-        "INSERT INTO conversations (user1_id, user2_id, created_at) VALUES (?, ?, ?)",
-        (a, b, now),
-    )
-    db.commit()
-    return cur.lastrowid
+    try:
+        cur = db.execute(
+            "INSERT INTO conversations (user1_id, user2_id, created_at) VALUES (?, ?, ?)",
+            (a, b, now),
+        )
+        db.commit()
+        if cur.lastrowid:
+            return cur.lastrowid
+    except Exception:
+        app.logger.exception("conversation insert failed for %s %s", a, b)
+        try:
+            db._conn.rollback()
+        except Exception:
+            pass
+    conv = find_conversation()
+    return conv["id"] if conv else None
 
 
 def user_in_conversation(conv_id, user_id):
@@ -1202,9 +1223,14 @@ def delete_comment(comment_id):
 @app.route("/messages")
 @login_required
 def messages_inbox():
-    search = request.args.get("q", "").strip()
-    contacts = get_message_contacts(session["user_id"], search)
-    return render_template("messages.html", contacts=contacts, search=search)
+    try:
+        search = request.args.get("q", "").strip()
+        contacts = get_message_contacts(g.user["id"], search)
+        return render_template("messages.html", contacts=contacts, search=search)
+    except Exception:
+        app.logger.exception("messages_inbox failed")
+        flash("Не удалось загрузить сообщения. Попробуйте ещё раз.", "error")
+        return redirect(url_for("index"))
 
 
 @app.route("/api/heartbeat")
@@ -1233,6 +1259,15 @@ def api_users_search():
 @app.route("/messages/<username>", methods=["GET", "POST"])
 @login_required
 def chat_with_user(username):
+    try:
+        return _chat_with_user(username)
+    except Exception:
+        app.logger.exception("chat_with_user failed for %s", username)
+        flash("Не удалось открыть чат. Попробуйте ещё раз.", "error")
+        return redirect(url_for("messages_inbox"))
+
+
+def _chat_with_user(username):
     db = get_db()
     partner = db.execute(
         "SELECT id, username, avatar, last_seen FROM users WHERE username = ?", (username,)
@@ -1242,11 +1277,14 @@ def chat_with_user(username):
         flash("Пользователь не найден.", "error")
         return redirect(url_for("messages_inbox"))
 
-    if partner["id"] == session["user_id"]:
+    if partner["id"] == g.user["id"]:
         flash("Нельзя написать самому себе.", "warning")
         return redirect(url_for("messages_inbox"))
 
-    conv_id = get_or_create_conversation(session["user_id"], partner["id"])
+    conv_id = get_or_create_conversation(g.user["id"], partner["id"])
+    if not conv_id:
+        flash("Не удалось создать диалог.", "error")
+        return redirect(url_for("messages_inbox"))
 
     if request.method == "POST":
         content = request.form.get("content", "").strip()
@@ -1257,7 +1295,7 @@ def chat_with_user(username):
         else:
             db.execute(
                 "INSERT INTO messages (conversation_id, sender_id, content, created_at) VALUES (?, ?, ?, ?)",
-                (conv_id, session["user_id"], content, datetime.now().isoformat()),
+                (conv_id, g.user["id"], content, datetime.now().isoformat()),
             )
             db.commit()
             return redirect(url_for("chat_with_user", username=username))
@@ -1265,7 +1303,7 @@ def chat_with_user(username):
     db.execute("""
         UPDATE messages SET is_read = 1
         WHERE conversation_id = ? AND sender_id != ? AND is_read = 0
-    """, (conv_id, session["user_id"]))
+    """, (conv_id, g.user["id"]))
     db.commit()
 
     messages = db.execute("""
@@ -1277,7 +1315,7 @@ def chat_with_user(username):
         ORDER BY messages.created_at ASC
     """, (conv_id,)).fetchall()
 
-    contacts = get_message_contacts(session["user_id"])
+    contacts = get_message_contacts(g.user["id"])
 
     return render_template(
         "chat.html",
@@ -1389,7 +1427,8 @@ def not_found(_error):
 
 @app.errorhandler(500)
 def server_error(_error):
-    return render_template("404.html"), 500
+    app.logger.exception("internal server error")
+    return render_template("500.html"), 500
 
 
 with app.app_context():
