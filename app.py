@@ -1,6 +1,5 @@
 import os
 import re
-import sqlite3
 import sys
 import uuid
 from datetime import datetime
@@ -22,6 +21,8 @@ from markupsafe import Markup, escape
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import database
+
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
@@ -38,7 +39,6 @@ if os.environ.get("RENDER"):
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 BASE_DIR = os.path.dirname(__file__)
-DATABASE = os.path.join(BASE_DIR, "blog.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
@@ -69,8 +69,7 @@ CYRILLIC_TO_LATIN = {
 
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row
+        g.db = database.connect()
     return g.db
 
 
@@ -82,7 +81,7 @@ def close_db(_exc):
 
 
 def table_columns(db, table):
-    return {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+    return database.table_columns(db, table)
 
 
 def slugify(text):
@@ -136,77 +135,8 @@ app.jinja_env.filters["tag_display"] = tag_display
 
 def migrate_db():
     db = get_db()
-    db.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS posts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-
-        CREATE TABLE IF NOT EXISTS comments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            post_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-
-        CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            slug TEXT UNIQUE NOT NULL,
-            created_at TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS tags (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            slug TEXT UNIQUE NOT NULL,
-            created_at TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS post_tags (
-            post_id INTEGER NOT NULL,
-            tag_id INTEGER NOT NULL,
-            PRIMARY KEY (post_id, tag_id),
-            FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
-            FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS conversations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user1_id INTEGER NOT NULL,
-            user2_id INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            UNIQUE (user1_id, user2_id),
-            FOREIGN KEY (user1_id) REFERENCES users (id),
-            FOREIGN KEY (user2_id) REFERENCES users (id)
-        );
-
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            conversation_id INTEGER NOT NULL,
-            sender_id INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            is_read INTEGER NOT NULL DEFAULT 0,
-            FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE,
-            FOREIGN KEY (sender_id) REFERENCES users (id)
-        );
-    """)
+    schema = database.postgres_schema() if database.USE_POSTGRES else database.sqlite_schema()
+    db.executescript(schema)
 
     user_cols = table_columns(db, "users")
     if "is_admin" not in user_cols:
