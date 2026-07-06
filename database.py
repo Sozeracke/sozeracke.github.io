@@ -93,7 +93,7 @@ class DatabaseConnection:
                 if row:
                     lastrowid = row.get("id")
                 return CursorResult(lastrowid=lastrowid)
-            rows = cur.fetchall()
+            rows = cur.fetchall() if cur.description else []
             return CursorResult(rows=rows)
 
         cur = self._conn.execute(sql, params)
