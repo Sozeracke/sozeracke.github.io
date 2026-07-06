@@ -535,6 +535,13 @@ def get_conversation_partner(conv_id, user_id):
 
 @app.before_request
 def before_request():
+    path = request.path
+    if path != "/" and path.endswith("/"):
+        target = path.rstrip("/")
+        if request.query_string:
+            target += "?" + request.query_string.decode()
+        return redirect(target)
+
     g.user = None
     g.unread_messages = 0
     if "user_id" in session:
