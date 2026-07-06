@@ -50,6 +50,19 @@
             </div>
             <div class="form-group">
                 <label class="checkbox-label">
+                    <input type="checkbox" id="is_private" name="is_private"
+                           {% if is_private_checked %}checked{% endif %}>
+                    Приватный пост
+                </label>
+                <span class="form-hint">
+                    Виден только вам, администраторам и пользователям с доступом.
+                    {% if is_private_checked and g.user.is_admin %}
+                        <a href="{{ url_for('admin_post_access', post_id=post.id) }}">Управление доступом</a>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
                     <input type="checkbox" id="schedule_post" name="schedule_post"
                            {% if schedule_enabled %}checked{% endif %}>
                     Запланировать публикацию

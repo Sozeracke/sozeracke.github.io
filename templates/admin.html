@@ -47,17 +47,25 @@
                                 <a href="{{ url_for('user_profile', username=post.username) }}">{{ post.username }}</a>
                             </td>
                             <td>
-                                {% if is_post_scheduled(post) %}
+                                {% if is_post_private(post) %}
+                                    <span class="badge badge-private">приватный</span>
+                                    {% if post.access_count %}
+                                        <span class="badge">{{ post.access_count }} чел.</span>
+                                    {% endif %}
+                                {% elif is_post_scheduled(post) %}
                                     <span class="badge badge-scheduled">
                                         {{ post.published_at[:16].replace('T', ' ') }}
                                     </span>
                                 {% else %}
-                                    <span class="badge">опубликован</span>
+                                    <span class="badge">публичный</span>
                                 {% endif %}
                             </td>
                             <td>{{ (post.published_at or post.created_at)[:10] }}</td>
                             <td class="admin-actions">
                                 <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost btn-sm">Открыть</a>
+                                {% if is_post_private(post) %}
+                                    <a href="{{ url_for('admin_post_access', post_id=post.id) }}" class="btn btn-ghost btn-sm">Доступ</a>
+                                {% endif %}
                                 <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}"
                                       onsubmit="return confirm('Удалить пост «{{ post.title }}»?')">
                                     <button type="submit" class="btn btn-danger btn-sm">Удалить</button>

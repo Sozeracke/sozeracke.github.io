@@ -11,6 +11,13 @@
                 Запланированная публикация: {{ post.published_at[:16].replace('T', ' ') }}.
                 Пост виден только вам{% if g.user and g.user.is_admin %} и администраторам{% endif %}.
             </div>
+        {% elif is_post_private(post) %}
+            <div class="private-banner">
+                Приватный пост — доступен только выбранным пользователям.
+                {% if g.user and g.user.is_admin %}
+                    <a href="{{ url_for('admin_post_access', post_id=post.id) }}">Управление доступом</a>
+                {% endif %}
+            </div>
         {% endif %}
         <h1>{{ post.title }}</h1>
         <div class="post-meta">

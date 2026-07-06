@@ -1024,6 +1024,49 @@ body {
     border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
+.badge-private {
+    background: rgba(139, 92, 246, 0.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.private-banner {
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: var(--radius);
+    color: #c4b5fd;
+    font-size: 0.9rem;
+}
+
+.private-banner a {
+    color: #ddd6fe;
+    font-weight: 600;
+}
+
+.post-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.access-grant-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.access-grant-form select {
+    min-width: 220px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+}
+
 .catalog-block h3 {
     font-size: 0.8rem;
     text-transform: uppercase;

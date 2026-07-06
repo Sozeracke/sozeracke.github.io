@@ -75,6 +75,8 @@ class DatabaseConnection:
         if sql.strip().upper().startswith("INSERT") and "ON CONFLICT" not in sql.upper():
             if "post_tags" in sql.lower():
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+            elif re.search(r"\binto\s+post_access\b", sql, re.IGNORECASE):
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+conversations\b", sql, re.IGNORECASE):
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+tags\b", sql, re.IGNORECASE):
@@ -83,7 +85,11 @@ class DatabaseConnection:
 
     def _insert_returns_id(self, sql):
         lower = sql.lower()
-        return "post_tags" not in lower and not re.search(r"\binto\s+media\b", lower)
+        return (
+            "post_tags" not in lower
+            and "post_access" not in lower
+            and not re.search(r"\binto\s+media\b", lower)
+        )
 
     def execute(self, sql, params=()):
         sql = self._adapt_sql(sql)
@@ -186,7 +192,16 @@ def postgres_schema():
             image TEXT,
             updated_at TEXT,
             category_id INTEGER REFERENCES categories (id),
-            published_at TEXT
+            published_at TEXT,
+            is_private INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS post_access (
+            post_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            granted_at TEXT NOT NULL,
+            granted_by INTEGER REFERENCES users (id),
+            PRIMARY KEY (post_id, user_id)
         );
 
         CREATE TABLE IF NOT EXISTS comments (
@@ -285,6 +300,17 @@ def sqlite_schema():
             PRIMARY KEY (post_id, tag_id),
             FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
             FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS post_access (
+            post_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            granted_at TEXT NOT NULL,
+            granted_by INTEGER,
+            PRIMARY KEY (post_id, user_id),
+            FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (granted_by) REFERENCES users (id)
         );
 
         CREATE TABLE IF NOT EXISTS conversations (

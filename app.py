@@ -220,6 +220,10 @@ def migrate_db():
         db.execute(
             "UPDATE posts SET published_at = created_at WHERE published_at IS NULL"
         )
+    if "is_private" not in post_cols:
+        db.execute(
+            "ALTER TABLE posts ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0"
+        )
 
     cat_cols = table_columns(db, "categories")
     if "created_by" not in cat_cols:
@@ -439,6 +443,64 @@ def post_is_public_sql(table_alias="posts"):
     )
 
 
+def is_post_private(post):
+    return bool(post.get("is_private"))
+
+
+def user_has_post_access(post_id, user_id):
+    if not user_id:
+        return False
+    db = get_db()
+    row = db.execute(
+        "SELECT 1 FROM post_access WHERE post_id = ? AND user_id = ?",
+        (post_id, user_id),
+    ).fetchone()
+    return row is not None
+
+
+def build_post_access_filter(user=None):
+    if user and user.get("is_admin"):
+        return "1=1", []
+    user_id = user["id"] if user else None
+    if user_id:
+        return """(
+            posts.is_private = 0
+            OR posts.user_id = ?
+            OR posts.id IN (SELECT post_id FROM post_access WHERE user_id = ?)
+        )""", [user_id, user_id]
+    return "posts.is_private = 0", []
+
+
+def can_view_post(post, user=None):
+    user = user if user is not None else getattr(g, "user", None)
+    user_id = user["id"] if user else None
+    author_id = post.get("author_id") or post.get("user_id")
+
+    if user_id and author_id and user_id == author_id:
+        return True
+    if user and user.get("is_admin"):
+        return True
+
+    if not is_post_published(post):
+        return False
+
+    if not is_post_private(post):
+        return True
+
+    return user_id and user_has_post_access(post["id"], user_id)
+
+
+def get_post_access_users(post_id):
+    db = get_db()
+    return db.execute("""
+        SELECT users.id, users.username, post_access.granted_at
+        FROM post_access
+        JOIN users ON users.id = post_access.user_id
+        WHERE post_access.post_id = ?
+        ORDER BY users.username
+    """, (post_id,)).fetchall()
+
+
 def format_datetime_local(iso_str):
     if not iso_str:
         return ""
@@ -479,6 +541,7 @@ def get_categories():
                COUNT(posts.id) AS post_count
         FROM categories
         LEFT JOIN posts ON posts.category_id = categories.id
+            AND posts.is_private = 0
             AND {post_is_public_sql("posts")}
         GROUP BY categories.id
         ORDER BY categories.name
@@ -528,6 +591,7 @@ def get_popular_tags(limit=20):
         FROM tags
         JOIN post_tags ON post_tags.tag_id = tags.id
         JOIN posts ON posts.id = post_tags.post_id
+            AND posts.is_private = 0
             AND {post_is_public_sql("posts")}
         GROUP BY tags.id
         HAVING COUNT(post_tags.post_id) > 0
@@ -607,9 +671,10 @@ def set_post_tags(post_id, tag_names):
 def fetch_posts(category_slug=None, tag_slug=None):
     db = get_db()
     cutoff = publication_cutoff()
+    access_sql, access_params = build_post_access_filter(getattr(g, "user", None))
     query = """
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
-               posts.published_at,
+               posts.published_at, posts.is_private,
                users.username, users.id AS author_id, users.last_seen AS author_last_seen,
                categories.name AS category_name, categories.slug AS category_slug,
                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
@@ -617,8 +682,8 @@ def fetch_posts(category_slug=None, tag_slug=None):
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
     """
-    params = [cutoff]
-    conditions = [post_is_public_sql("posts")]
+    params = [cutoff, *access_params]
+    conditions = [post_is_public_sql("posts"), access_sql]
 
     if category_slug:
         conditions.append("categories.slug = ?")
@@ -791,6 +856,7 @@ def inject_globals():
         "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
         "is_post_scheduled": is_post_scheduled,
         "is_post_published": is_post_published,
+        "is_post_private": is_post_private,
         "format_datetime_local": format_datetime_local,
     }
 
@@ -1018,7 +1084,7 @@ def user_profile(username):
 
     posts_query = """
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
-               posts.published_at,
+               posts.published_at, posts.is_private,
                categories.name AS category_name, categories.slug AS category_slug,
                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
         FROM posts
@@ -1027,8 +1093,19 @@ def user_profile(username):
     """
     posts_params = [profile_user["id"]]
     viewer_is_owner = g.user and g.user["id"] == profile_user["id"]
-    if not viewer_is_owner and not is_admin():
-        posts_query += f" AND {post_is_public_sql('posts')}"
+    if viewer_is_owner or is_admin():
+        pass
+    elif g.user:
+        posts_query += f"""
+            AND {post_is_public_sql('posts')}
+            AND (
+                posts.is_private = 0
+                OR posts.id IN (SELECT post_id FROM post_access WHERE user_id = ?)
+            )
+        """
+        posts_params.extend([publication_cutoff(), g.user["id"]])
+    else:
+        posts_query += f" AND posts.is_private = 0 AND {post_is_public_sql('posts')}"
         posts_params.append(publication_cutoff())
     posts_query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
     posts_raw = db.execute(posts_query, posts_params).fetchall()
@@ -1087,6 +1164,7 @@ def post_form_context(post=None):
             if post and post.get("published_at")
             else ""
         ),
+        "is_private_checked": bool(post and post.get("is_private")),
     }
 
 
@@ -1125,11 +1203,13 @@ def create_post():
 
             if not errors:
                 now = datetime.now().isoformat()
+                is_private = 1 if request.form.get("is_private") == "on" else 0
                 db = get_db()
                 cur = db.execute(
                     """INSERT INTO posts
-                       (user_id, title, content, image, category_id, created_at, updated_at, published_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                       (user_id, title, content, image, category_id, created_at, updated_at,
+                        published_at, is_private)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         session["user_id"],
                         title,
@@ -1139,6 +1219,7 @@ def create_post():
                         now,
                         now,
                         published_at,
+                        is_private,
                     ),
                 )
                 post_id = cur.lastrowid
@@ -1149,6 +1230,11 @@ def create_post():
                 if is_scheduled:
                     flash(
                         f"Пост запланирован на {published_at[:16].replace('T', ' ')}.",
+                        "success",
+                    )
+                elif is_private:
+                    flash(
+                        "Приватный пост создан. Выдайте доступ пользователям в панели администратора.",
                         "success",
                     )
                 else:
@@ -1175,6 +1261,7 @@ def view_post(post_id):
     post = db.execute("""
         SELECT posts.id, posts.title, posts.content, posts.image,
                posts.created_at, posts.updated_at, posts.category_id, posts.published_at,
+               posts.is_private, posts.user_id,
                users.username, users.id AS author_id,
                categories.name AS category_name, categories.slug AS category_slug
         FROM posts
@@ -1187,10 +1274,13 @@ def view_post(post_id):
         flash("Пост не найден.", "error")
         return redirect(url_for("index"))
 
-    can_preview = g.user and (
+    can_preview_unpublished = g.user and (
         g.user["id"] == post["author_id"] or is_admin()
     )
-    if not is_post_published(post) and not can_preview:
+    if not is_post_published(post) and not can_preview_unpublished:
+        flash("Пост не найден.", "error")
+        return redirect(url_for("index"))
+    if is_post_published(post) and not can_view_post(post):
         flash("Пост не найден.", "error")
         return redirect(url_for("index"))
 
@@ -1268,10 +1358,12 @@ def edit_post(post_id):
         if schedule_error:
             errors.append(schedule_error)
 
+        is_private = 1 if request.form.get("is_private") == "on" else 0
+
         if not errors:
             db.execute(
                 """UPDATE posts SET title = ?, content = ?, image = ?, category_id = ?,
-                   updated_at = ?, published_at = ?
+                   updated_at = ?, published_at = ?, is_private = ?
                    WHERE id = ?""",
                 (
                     title,
@@ -1280,10 +1372,13 @@ def edit_post(post_id):
                     category_id,
                     datetime.now().isoformat(),
                     published_at,
+                    is_private,
                     post_id,
                 ),
             )
             set_post_tags(post_id, parse_tags_input(tags_raw))
+            if not is_private:
+                db.execute("DELETE FROM post_access WHERE post_id = ?", (post_id,))
             db.commit()
             if is_scheduled:
                 flash(
@@ -1315,6 +1410,7 @@ def delete_post(post_id):
         return redirect(url_for("view_post", post_id=post_id))
 
     delete_file(post["image"])
+    db.execute("DELETE FROM post_access WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM post_tags WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM comments WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM posts WHERE id = ?", (post_id,))
@@ -1330,7 +1426,7 @@ def delete_post(post_id):
 def add_comment(post_id):
     db = get_db()
     post = db.execute(
-        "SELECT id, created_at, published_at FROM posts WHERE id = ?",
+        "SELECT id, user_id, created_at, published_at, is_private FROM posts WHERE id = ?",
         (post_id,),
     ).fetchone()
     if not post:
@@ -1339,6 +1435,9 @@ def add_comment(post_id):
     if not is_post_published(post):
         flash("Комментарии доступны только после публикации поста.", "warning")
         return redirect(url_for("view_post", post_id=post_id))
+    if not can_view_post(post):
+        flash("Пост не найден.", "error")
+        return redirect(url_for("index"))
 
     content = request.form.get("content", "").strip()
     if len(content) < 2:
@@ -1563,14 +1662,92 @@ def api_chat_messages(conv_id):
     })
 
 
+@app.route("/admin/post/<int:post_id>/access", methods=["GET", "POST"])
+@admin_required
+def admin_post_access(post_id):
+    db = get_db()
+    post = db.execute("""
+        SELECT posts.id, posts.title, posts.is_private, posts.user_id,
+               users.username AS author_name
+        FROM posts
+        JOIN users ON users.id = posts.user_id
+        WHERE posts.id = ?
+    """, (post_id,)).fetchone()
+
+    if not post:
+        flash("Пост не найден.", "error")
+        return redirect(url_for("admin_panel"))
+
+    if not post["is_private"]:
+        flash("Этот пост публичный — управление доступом не требуется.", "info")
+        return redirect(url_for("admin_panel"))
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        user_id = request.form.get("user_id", type=int)
+
+        if action == "grant" and user_id:
+            if user_id == post["user_id"]:
+                flash("Автору поста доступ не нужно выдавать.", "warning")
+            else:
+                target = db.execute(
+                    "SELECT id, username FROM users WHERE id = ?", (user_id,)
+                ).fetchone()
+                if not target:
+                    flash("Пользователь не найден.", "error")
+                else:
+                    db.execute(
+                        """INSERT OR IGNORE INTO post_access
+                           (post_id, user_id, granted_at, granted_by)
+                           VALUES (?, ?, ?, ?)""",
+                        (
+                            post_id,
+                            user_id,
+                            datetime.now().isoformat(),
+                            session["user_id"],
+                        ),
+                    )
+                    db.commit()
+                    flash(f"Доступ выдан пользователю {target['username']}.", "success")
+        elif action == "revoke" and user_id:
+            target = db.execute(
+                "SELECT username FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+            db.execute(
+                "DELETE FROM post_access WHERE post_id = ? AND user_id = ?",
+                (post_id, user_id),
+            )
+            db.commit()
+            if target:
+                flash(f"Доступ отозван у {target['username']}.", "info")
+
+        return redirect(url_for("admin_post_access", post_id=post_id))
+
+    granted_users = get_post_access_users(post_id)
+    available_users = db.execute("""
+        SELECT id, username FROM users
+        WHERE id != ?
+          AND id NOT IN (SELECT user_id FROM post_access WHERE post_id = ?)
+        ORDER BY username
+    """, (post["user_id"], post_id)).fetchall()
+
+    return render_template(
+        "admin_post_access.html",
+        post=post,
+        granted_users=granted_users,
+        available_users=available_users,
+    )
+
+
 @app.route("/admin")
 @admin_required
 def admin_panel():
     db = get_db()
     posts = db.execute("""
-        SELECT posts.id, posts.title, posts.created_at, posts.published_at,
+        SELECT posts.id, posts.title, posts.created_at, posts.published_at, posts.is_private,
                users.username, users.id AS author_id,
-               categories.name AS category_name
+               categories.name AS category_name,
+               (SELECT COUNT(*) FROM post_access WHERE post_access.post_id = posts.id) AS access_count
         FROM posts
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id

@@ -43,7 +43,12 @@
                                         {% include '_online_status.html' %}
                                     {% endwith %}
                                 </a>
-                                <time class="post-date">{{ post.created_at[:10] }}</time>
+                                <div class="post-card-meta">
+                                    <time class="post-date">{{ post.created_at[:10] }}</time>
+                                    {% if is_post_private(post) %}
+                                        <span class="badge badge-private">приватный</span>
+                                    {% endif %}
+                                </div>
                             </div>
                             {% if post.category_name %}
                                 <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
