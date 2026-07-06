@@ -301,6 +301,13 @@ body {
     margin-bottom: 24px;
 }
 
+.error-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 /* Auth */
 .auth-container, .form-container {
     display: flex;

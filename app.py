@@ -19,10 +19,13 @@ from flask import (
     url_for,
 )
 from markupsafe import Markup, escape
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+app.url_map.strict_slashes = False
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.config["SITE_URL"] = os.environ.get("SITE_URL", "http://127.0.0.1:5000")
@@ -722,8 +725,10 @@ def register():
                 new_user_id = cur.lastrowid
                 db.commit()
                 ensure_site_owner_contact(new_user_id)
-                flash("Регистрация успешна! Теперь войдите.", "success")
-                return redirect(url_for("login"))
+                session.clear()
+                session["user_id"] = new_user_id
+                flash(f"Добро пожаловать, {username}! Вы зарегистрированы.", "success")
+                return redirect(url_for("index"))
 
         for error in errors:
             flash(error, "error")
@@ -1205,6 +1210,11 @@ def admin_panel():
     }
 
     return render_template("admin.html", posts=posts, users=users, stats=stats)
+
+
+@app.errorhandler(404)
+def not_found(_error):
+    return render_template("404.html"), 404
 
 
 with app.app_context():
