@@ -374,7 +374,7 @@ def get_popular_tags(limit=20):
         FROM tags
         LEFT JOIN post_tags ON post_tags.tag_id = tags.id
         GROUP BY tags.id
-        HAVING post_count > 0
+        HAVING COUNT(post_tags.post_id) > 0
         ORDER BY post_count DESC, tags.name
         LIMIT ?
     """, (limit,)).fetchall()
