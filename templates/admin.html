@@ -32,6 +32,7 @@
                     <tr>
                         <th>Заголовок</th>
                         <th>Автор</th>
+                        <th>Статус</th>
                         <th>Дата</th>
                         <th></th>
                     </tr>
@@ -45,7 +46,16 @@
                             <td>
                                 <a href="{{ url_for('user_profile', username=post.username) }}">{{ post.username }}</a>
                             </td>
-                            <td>{{ post.created_at[:10] }}</td>
+                            <td>
+                                {% if is_post_scheduled(post) %}
+                                    <span class="badge badge-scheduled">
+                                        {{ post.published_at[:16].replace('T', ' ') }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge">опубликован</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ (post.published_at or post.created_at)[:10] }}</td>
                             <td class="admin-actions">
                                 <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost btn-sm">Открыть</a>
                                 <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}"

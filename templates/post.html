@@ -6,6 +6,12 @@
 <article class="post-full">
     <header class="post-full-header">
         <a href="{{ url_for('index') }}" class="back-link">← Назад к постам</a>
+        {% if is_scheduled_preview %}
+            <div class="scheduled-banner">
+                Запланированная публикация: {{ post.published_at[:16].replace('T', ' ') }}.
+                Пост виден только вам{% if g.user and g.user.is_admin %} и администраторам{% endif %}.
+            </div>
+        {% endif %}
         <h1>{{ post.title }}</h1>
         <div class="post-meta">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
@@ -57,7 +63,9 @@
     <section class="comments-section">
         <h2 class="comments-title">Комментарии ({{ comments|length }})</h2>
 
-        {% if g.user %}
+        {% if is_scheduled_preview %}
+            <p class="form-hint">Комментарии будут доступны после публикации поста.</p>
+        {% elif g.user %}
             <form method="POST" action="{{ url_for('add_comment', post_id=post.id) }}" class="comment-form">
                 <div class="form-group">
                     <label for="content">Ваш комментарий</label>

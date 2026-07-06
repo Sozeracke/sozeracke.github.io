@@ -48,11 +48,49 @@
                 <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/gif,image/webp">
                 <span class="form-hint">PNG, JPG, GIF или WEBP, до 5 МБ</span>
             </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="schedule_post" name="schedule_post"
+                           {% if schedule_enabled %}checked{% endif %}>
+                    Запланировать публикацию
+                </label>
+                <div id="schedule_panel" class="schedule-panel" {% if not schedule_enabled %}hidden{% endif %}>
+                    <label for="published_at">Дата и время</label>
+                    <input type="datetime-local" id="published_at" name="published_at"
+                           value="{{ publish_at_local }}">
+                    <span class="form-hint">
+                        {% if is_post_published(post) %}
+                            Можно перенести публикацию на будущее
+                        {% else %}
+                            Пост появится на сайте в указанное время
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
             <div class="form-actions">
                 <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost">Отмена</a>
-                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="submit" class="btn btn-primary" id="submit_post">Сохранить</button>
             </div>
         </form>
     </div>
 </div>
+<script>
+(function () {
+    const checkbox = document.getElementById('schedule_post');
+    const panel = document.getElementById('schedule_panel');
+    const input = document.getElementById('published_at');
+    const submit = document.getElementById('submit_post');
+    if (!checkbox || !panel || !input || !submit) return;
+
+    function syncSchedule() {
+        const enabled = checkbox.checked;
+        panel.hidden = !enabled;
+        input.required = enabled;
+        submit.textContent = enabled ? 'Запланировать' : 'Сохранить';
+    }
+
+    checkbox.addEventListener('change', syncSchedule);
+    syncSchedule();
+})();
+</script>
 {% endblock %}

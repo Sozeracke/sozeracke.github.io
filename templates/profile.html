@@ -55,7 +55,10 @@
                     {% endif %}
                     <div class="post-card-body">
                         <div class="post-card-header">
-                            <time class="post-date">{{ post.created_at[:10] }}</time>
+                            <time class="post-date">{{ (post.published_at or post.created_at)[:10] }}</time>
+                            {% if is_post_scheduled(post) %}
+                                <span class="badge badge-scheduled">запланирован</span>
+                            {% endif %}
                         </div>
                         {% if post.category_name %}
                             <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">

@@ -185,7 +185,8 @@ def postgres_schema():
             created_at TEXT NOT NULL,
             image TEXT,
             updated_at TEXT,
-            category_id INTEGER REFERENCES categories (id)
+            category_id INTEGER REFERENCES categories (id),
+            published_at TEXT
         );
 
         CREATE TABLE IF NOT EXISTS comments (

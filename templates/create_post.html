@@ -45,13 +45,43 @@
                 <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/gif,image/webp">
                 <span class="form-hint">PNG, JPG, GIF или WEBP, до 5 МБ</span>
             </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="schedule_post" name="schedule_post">
+                    Запланировать публикацию
+                </label>
+                <div id="schedule_panel" class="schedule-panel" hidden>
+                    <label for="published_at">Дата и время</label>
+                    <input type="datetime-local" id="published_at" name="published_at">
+                    <span class="form-hint">Пост появится на сайте в указанное время</span>
+                </div>
+            </div>
             <div class="form-actions">
                 <a href="{{ url_for('index') }}" class="btn btn-ghost">Отмена</a>
-                <button type="submit" class="btn btn-primary" {% if not categories %}disabled{% endif %}>
+                <button type="submit" class="btn btn-primary" id="submit_post" {% if not categories %}disabled{% endif %}>
                     Опубликовать
                 </button>
             </div>
         </form>
     </div>
 </div>
+<script>
+(function () {
+    const checkbox = document.getElementById('schedule_post');
+    const panel = document.getElementById('schedule_panel');
+    const input = document.getElementById('published_at');
+    const submit = document.getElementById('submit_post');
+    if (!checkbox || !panel || !input || !submit) return;
+
+    function syncSchedule() {
+        const enabled = checkbox.checked;
+        panel.hidden = !enabled;
+        input.required = enabled;
+        submit.textContent = enabled ? 'Запланировать' : 'Опубликовать';
+    }
+
+    checkbox.addEventListener('change', syncSchedule);
+    syncSchedule();
+})();
+</script>
 {% endblock %}

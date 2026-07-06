@@ -4,9 +4,10 @@
 {% block main_class %}main-with-catalog{% endblock %}
 
 {% block content %}
-<div class="layout-with-sidebar">
+<div class="catalog-layout">
     {% include "_catalog_sidebar.html" %}
 
+    <div class="catalog-center">
     <div class="main-content">
         <section class="hero hero-compact">
             <h1>{{ page_title }}</h1>
@@ -86,6 +87,7 @@
         {% endif %}
             </div>
         {% endif %}
+    </div>
     </div>
 </div>
 {% endblock %}

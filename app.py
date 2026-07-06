@@ -215,6 +215,11 @@ def migrate_db():
         db.execute("ALTER TABLE posts ADD COLUMN updated_at TEXT")
     if "category_id" not in post_cols:
         db.execute("ALTER TABLE posts ADD COLUMN category_id INTEGER REFERENCES categories (id)")
+    if "published_at" not in post_cols:
+        db.execute("ALTER TABLE posts ADD COLUMN published_at TEXT")
+        db.execute(
+            "UPDATE posts SET published_at = created_at WHERE published_at IS NULL"
+        )
 
     cat_cols = table_columns(db, "categories")
     if "created_by" not in cat_cols:
@@ -409,17 +414,75 @@ def admin_required(f):
     return decorated
 
 
+def publication_cutoff():
+    return datetime.now().isoformat()
+
+
+def post_publish_time(post):
+    return post.get("published_at") or post["created_at"]
+
+
+def is_post_published(post, now=None):
+    now = now or publication_cutoff()
+    return post_publish_time(post) <= now
+
+
+def is_post_scheduled(post, now=None):
+    now = now or publication_cutoff()
+    published_at = post.get("published_at")
+    return bool(published_at and published_at > now)
+
+
+def post_is_public_sql(table_alias="posts"):
+    return (
+        f"COALESCE({table_alias}.published_at, {table_alias}.created_at) <= ?"
+    )
+
+
+def format_datetime_local(iso_str):
+    if not iso_str:
+        return ""
+    return iso_str[:16]
+
+
+def parse_publish_schedule(form, default_now=None):
+    default_now = default_now or datetime.now()
+    if form.get("schedule_post") != "on":
+        return default_now.isoformat(), False, None
+
+    raw = form.get("published_at", "").strip()
+    if not raw:
+        return None, True, "Укажите дату и время публикации."
+    try:
+        scheduled = datetime.fromisoformat(raw)
+    except ValueError:
+        return None, True, "Некорректная дата публикации."
+    if scheduled <= default_now:
+        return None, True, "Время публикации должно быть в будущем."
+    return scheduled.isoformat(), True, None
+
+
+def resolve_edit_publish_at(form, post):
+    if form.get("schedule_post") == "on":
+        return parse_publish_schedule(form)
+    if is_post_published(post):
+        return post.get("published_at") or post["created_at"], False, None
+    return datetime.now().isoformat(), False, None
+
+
 def get_categories():
     db = get_db()
-    return db.execute("""
+    cutoff = publication_cutoff()
+    return db.execute(f"""
         SELECT categories.id, categories.name, categories.slug,
                categories.created_by,
                COUNT(posts.id) AS post_count
         FROM categories
         LEFT JOIN posts ON posts.category_id = categories.id
+            AND {post_is_public_sql("posts")}
         GROUP BY categories.id
         ORDER BY categories.name
-    """).fetchall()
+    """, (cutoff,)).fetchall()
 
 
 def get_message_contacts(user_id, search="", admins_only=False):
@@ -458,16 +521,19 @@ def get_message_contacts(user_id, search="", admins_only=False):
 
 def get_popular_tags(limit=20):
     db = get_db()
-    return db.execute("""
+    cutoff = publication_cutoff()
+    return db.execute(f"""
         SELECT tags.id, tags.name, tags.slug,
                COUNT(post_tags.post_id) AS post_count
         FROM tags
-        LEFT JOIN post_tags ON post_tags.tag_id = tags.id
+        JOIN post_tags ON post_tags.tag_id = tags.id
+        JOIN posts ON posts.id = post_tags.post_id
+            AND {post_is_public_sql("posts")}
         GROUP BY tags.id
         HAVING COUNT(post_tags.post_id) > 0
         ORDER BY post_count DESC, tags.name
         LIMIT ?
-    """, (limit,)).fetchall()
+    """, (cutoff, limit)).fetchall()
 
 
 def get_post_tags(post_id):
@@ -540,8 +606,10 @@ def set_post_tags(post_id, tag_names):
 
 def fetch_posts(category_slug=None, tag_slug=None):
     db = get_db()
+    cutoff = publication_cutoff()
     query = """
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
+               posts.published_at,
                users.username, users.id AS author_id, users.last_seen AS author_last_seen,
                categories.name AS category_name, categories.slug AS category_slug,
                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
@@ -549,8 +617,8 @@ def fetch_posts(category_slug=None, tag_slug=None):
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
     """
-    params = []
-    conditions = []
+    params = [cutoff]
+    conditions = [post_is_public_sql("posts")]
 
     if category_slug:
         conditions.append("categories.slug = ?")
@@ -560,10 +628,8 @@ def fetch_posts(category_slug=None, tag_slug=None):
         conditions.append("tags.slug = ?")
         params.append(tag_slug)
 
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-
-    query += " ORDER BY posts.created_at DESC"
+    query += " WHERE " + " AND ".join(conditions)
+    query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
     return db.execute(query, params).fetchall()
 
 
@@ -723,6 +789,9 @@ def inject_globals():
         "site_name": SITE_NAME,
         "media_url": media_url,
         "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
+        "is_post_scheduled": is_post_scheduled,
+        "is_post_published": is_post_published,
+        "format_datetime_local": format_datetime_local,
     }
 
 
@@ -947,15 +1016,22 @@ def user_profile(username):
         flash("Пользователь не найден.", "error")
         return redirect(url_for("index"))
 
-    posts_raw = db.execute("""
+    posts_query = """
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
+               posts.published_at,
                categories.name AS category_name, categories.slug AS category_slug,
                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
         FROM posts
         LEFT JOIN categories ON posts.category_id = categories.id
         WHERE posts.user_id = ?
-        ORDER BY posts.created_at DESC
-    """, (profile_user["id"],)).fetchall()
+    """
+    posts_params = [profile_user["id"]]
+    viewer_is_owner = g.user and g.user["id"] == profile_user["id"]
+    if not viewer_is_owner and not is_admin():
+        posts_query += f" AND {post_is_public_sql('posts')}"
+        posts_params.append(publication_cutoff())
+    posts_query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
+    posts_raw = db.execute(posts_query, posts_params).fetchall()
     posts = attach_tags_to_posts(posts_raw)
 
     return render_template(
@@ -1005,6 +1081,12 @@ def post_form_context(post=None):
         "categories": categories,
         "selected_category": selected_category,
         "selected_tags": selected_tags,
+        "schedule_enabled": bool(post and is_post_scheduled(post)),
+        "publish_at_local": (
+            format_datetime_local(post.get("published_at"))
+            if post and post.get("published_at")
+            else ""
+        ),
     }
 
 
@@ -1037,20 +1119,40 @@ def create_post():
                 if not cat:
                     errors.append("Категория не найдена.")
 
+            published_at, is_scheduled, schedule_error = parse_publish_schedule(request.form)
+            if schedule_error:
+                errors.append(schedule_error)
+
             if not errors:
                 now = datetime.now().isoformat()
                 db = get_db()
                 cur = db.execute(
-                    """INSERT INTO posts (user_id, title, content, image, category_id, created_at, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (session["user_id"], title, content, image, category_id, now, now),
+                    """INSERT INTO posts
+                       (user_id, title, content, image, category_id, created_at, updated_at, published_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        session["user_id"],
+                        title,
+                        content,
+                        image,
+                        category_id,
+                        now,
+                        now,
+                        published_at,
+                    ),
                 )
                 post_id = cur.lastrowid
                 if not post_id:
                     raise RuntimeError("post insert did not return id")
                 set_post_tags(post_id, parse_tags_input(tags_raw))
                 db.commit()
-                flash("Пост опубликован!", "success")
+                if is_scheduled:
+                    flash(
+                        f"Пост запланирован на {published_at[:16].replace('T', ' ')}.",
+                        "success",
+                    )
+                else:
+                    flash("Пост опубликован!", "success")
                 return redirect(url_for("view_post", post_id=post_id))
 
             for error in errors:
@@ -1072,7 +1174,7 @@ def view_post(post_id):
     db = get_db()
     post = db.execute("""
         SELECT posts.id, posts.title, posts.content, posts.image,
-               posts.created_at, posts.updated_at, posts.category_id,
+               posts.created_at, posts.updated_at, posts.category_id, posts.published_at,
                users.username, users.id AS author_id,
                categories.name AS category_name, categories.slug AS category_slug
         FROM posts
@@ -1082,6 +1184,13 @@ def view_post(post_id):
     """, (post_id,)).fetchone()
 
     if not post:
+        flash("Пост не найден.", "error")
+        return redirect(url_for("index"))
+
+    can_preview = g.user and (
+        g.user["id"] == post["author_id"] or is_admin()
+    )
+    if not is_post_published(post) and not can_preview:
         flash("Пост не найден.", "error")
         return redirect(url_for("index"))
 
@@ -1095,8 +1204,15 @@ def view_post(post_id):
     """, (post_id,)).fetchall()
 
     post_tags = get_post_tags(post_id)
+    is_scheduled_preview = not is_post_published(post)
 
-    return render_template("post.html", post=post, comments=comments, post_tags=post_tags)
+    return render_template(
+        "post.html",
+        post=post,
+        comments=comments,
+        post_tags=post_tags,
+        is_scheduled_preview=is_scheduled_preview,
+    )
 
 
 @app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
@@ -1146,15 +1262,36 @@ def edit_post(post_id):
             if not cat:
                 errors.append("Категория не найдена.")
 
+        published_at, is_scheduled, schedule_error = resolve_edit_publish_at(
+            request.form, post
+        )
+        if schedule_error:
+            errors.append(schedule_error)
+
         if not errors:
             db.execute(
-                """UPDATE posts SET title = ?, content = ?, image = ?, category_id = ?, updated_at = ?
+                """UPDATE posts SET title = ?, content = ?, image = ?, category_id = ?,
+                   updated_at = ?, published_at = ?
                    WHERE id = ?""",
-                (title, content, image, category_id, datetime.now().isoformat(), post_id),
+                (
+                    title,
+                    content,
+                    image,
+                    category_id,
+                    datetime.now().isoformat(),
+                    published_at,
+                    post_id,
+                ),
             )
             set_post_tags(post_id, parse_tags_input(tags_raw))
             db.commit()
-            flash("Пост обновлён!", "success")
+            if is_scheduled:
+                flash(
+                    f"Пост запланирован на {published_at[:16].replace('T', ' ')}.",
+                    "success",
+                )
+            else:
+                flash("Пост обновлён!", "success")
             return redirect(url_for("view_post", post_id=post_id))
 
         for error in errors:
@@ -1192,10 +1329,16 @@ def delete_post(post_id):
 @login_required
 def add_comment(post_id):
     db = get_db()
-    post = db.execute("SELECT id FROM posts WHERE id = ?", (post_id,)).fetchone()
+    post = db.execute(
+        "SELECT id, created_at, published_at FROM posts WHERE id = ?",
+        (post_id,),
+    ).fetchone()
     if not post:
         flash("Пост не найден.", "error")
         return redirect(url_for("index"))
+    if not is_post_published(post):
+        flash("Комментарии доступны только после публикации поста.", "warning")
+        return redirect(url_for("view_post", post_id=post_id))
 
     content = request.form.get("content", "").strip()
     if len(content) < 2:
@@ -1423,13 +1566,13 @@ def api_chat_messages(conv_id):
 def admin_panel():
     db = get_db()
     posts = db.execute("""
-        SELECT posts.id, posts.title, posts.created_at,
+        SELECT posts.id, posts.title, posts.created_at, posts.published_at,
                users.username, users.id AS author_id,
                categories.name AS category_name
         FROM posts
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
-        ORDER BY posts.created_at DESC
+        ORDER BY COALESCE(posts.published_at, posts.created_at) DESC
     """).fetchall()
 
     users = db.execute("""
