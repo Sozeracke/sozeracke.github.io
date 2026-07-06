@@ -1461,10 +1461,29 @@ body {
     display: flex;
     align-items: stretch;
     border-bottom: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    transition: background 0.2s;
 }
 
-.conversation-row.is-pinned .conversation-item {
-    background: rgba(108, 99, 255, 0.08);
+.conversation-row.is-pinned {
+    background: rgba(108, 99, 255, 0.16);
+    border-left-color: var(--primary);
+}
+
+.conversation-row.is-pinned:hover {
+    background: rgba(108, 99, 255, 0.22);
+}
+
+.conversation-row.is-pinned .conversation-item,
+.conversation-row.is-pinned .conversation-item:hover,
+.conversation-row.is-pinned .conversation-item.unread,
+.conversation-row.is-pinned .conversation-item.active {
+    background: transparent;
+    border-left: none;
+}
+
+.conversation-row.is-pinned .conversation-pin-form {
+    background: transparent;
 }
 
 .conversation-item {
