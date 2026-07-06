@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Панель администратора — Блог{% endblock %}
+
+{% block content %}
+<section class="admin-header">
+    <h1>Панель администратора</h1>
+    <p class="admin-subtitle">Управление контентом сайта</p>
+</section>
+
+<div class="admin-stats">
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.users }}</span>
+        <span class="stat-label">пользователей</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.posts }}</span>
+        <span class="stat-label">постов</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.comments }}</span>
+        <span class="stat-label">комментариев</span>
+    </div>
+</div>
+
+<section class="admin-section">
+    <h2>Все посты</h2>
+    {% if posts %}
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Заголовок</th>
+                        <th>Автор</th>
+                        <th>Дата</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in posts %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('view_post', post_id=post.id) }}">{{ post.title }}</a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('user_profile', username=post.username) }}">{{ post.username }}</a>
+                            </td>
+                            <td>{{ post.created_at[:10] }}</td>
+                            <td class="admin-actions">
+                                <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost btn-sm">Открыть</a>
+                                <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}"
+                                      onsubmit="return confirm('Удалить пост «{{ post.title }}»?')">
+                                    <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="admin-empty">Постов пока нет.</p>
+    {% endif %}
+</section>
+
+<section class="admin-section">
+    <h2>Пользователи</h2>
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Имя</th>
+                    <th>Email</th>
+                    <th>Постов</th>
+                    <th>Роль</th>
+                    <th>Дата регистрации</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('user_profile', username=user.username) }}">{{ user.username }}</a>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.post_count }}</td>
+                        <td>
+                            {% if user.is_admin %}
+                                <span class="badge badge-admin">админ</span>
+                            {% else %}
+                                <span class="badge">пользователь</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at[:10] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

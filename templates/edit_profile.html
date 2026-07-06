@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать профиль — Блог{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h1>Редактировать профиль</h1>
+        <p class="form-subtitle">Расскажите о себе</p>
+
+        <form method="POST" enctype="multipart/form-data" class="post-form">
+            <div class="form-group">
+                <label>Текущий аватар</label>
+                <div class="avatar-preview">
+                    {% if g.user.avatar %}
+                        <img src="{{ url_for('static', filename='uploads/' + g.user.avatar) }}" alt="">
+                    {% else %}
+                        <div class="profile-avatar profile-avatar-placeholder profile-avatar-sm">
+                            {{ g.user.username[0]|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="avatar">Новый аватар</label>
+                <input type="file" id="avatar" name="avatar" accept="image/png,image/jpeg,image/gif,image/webp">
+                <span class="form-hint">PNG, JPG, GIF или WEBP, до 5 МБ</span>
+            </div>
+            <div class="form-group">
+                <label for="bio">О себе</label>
+                <textarea id="bio" name="bio" rows="5" maxlength="500"
+                          placeholder="Расскажите немного о себе...">{{ g.user.bio or '' }}</textarea>
+            </div>
+            <div class="form-actions">
+                <a href="{{ url_for('user_profile', username=g.user.username) }}" class="btn btn-ghost">Отмена</a>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

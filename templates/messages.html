@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщения — Блог{% endblock %}
+{% block main_class %}container container-wide{% endblock %}
+
+{% block content %}
+<div class="messages-layout">
+    <aside class="messages-sidebar">
+        <div class="messages-sidebar-header">
+            <h1>Сообщения</h1>
+            <form method="GET" action="{{ url_for('messages_inbox') }}" class="user-search-form">
+                <input type="text" name="q" id="user-search" value="{{ search }}"
+                       placeholder="Поиск по имени..." autocomplete="off">
+                {% if search %}
+                    <a href="{{ url_for('messages_inbox') }}" class="search-clear" title="Сбросить">×</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="contacts-section-label">
+            Все пользователи ({{ contacts|length }})
+        </div>
+
+        {% if contacts %}
+            <div class="conversation-list" id="contacts-list">
+                {% for contact in contacts %}
+                    <a href="{{ url_for('chat_with_user', username=contact.username) }}"
+                       class="conversation-item {% if contact.unread_count %}unread{% endif %}"
+                       data-username="{{ contact.username|lower }}">
+                        <div class="conversation-avatar">
+                            {% if contact.avatar %}
+                                <img src="{{ url_for('static', filename='uploads/' + contact.avatar) }}" alt="">
+                            {% else %}
+                                <span>{{ contact.username[0]|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="conversation-info">
+                            <div class="conversation-top">
+                                <strong>{{ contact.username }}</strong>
+                                {% if contact.last_message_at %}
+                                    <time>{{ contact.last_message_at[:16].replace('T', ' ') }}</time>
+                                {% endif %}
+                            </div>
+                            <p class="conversation-preview">
+                                {% if contact.last_message %}
+                                    {{ contact.last_message[:60] }}{% if contact.last_message|length > 60 %}...{% endif %}
+                                {% else %}
+                                    <span class="no-messages-yet">Начать диалог</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        {% if contact.unread_count %}
+                            <span class="conversation-unread">{{ contact.unread_count }}</span>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="messages-empty">
+                {% if search %}
+                    Пользователи не найдены по запросу «{{ search }}».
+                {% else %}
+                    Других пользователей пока нет.
+                {% endif %}
+            </p>
+        {% endif %}
+    </aside>
+
+    <div class="messages-placeholder">
+        <div class="messages-placeholder-inner">
+            <div class="empty-icon">💬</div>
+            <h2>Выберите пользователя</h2>
+            <p>Все зарегистрированные пользователи доступны для общения</p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const input = document.getElementById('user-search');
+    const list = document.getElementById('contacts-list');
+    if (!input || !list) return;
+
+    let debounce;
+    input.addEventListener('input', function() {
+        clearTimeout(debounce);
+        const q = input.value.trim().toLowerCase();
+        debounce = setTimeout(function() {
+            list.querySelectorAll('.conversation-item').forEach(function(item) {
+                const name = item.dataset.username || '';
+                item.style.display = !q || name.includes(q) ? '' : 'none';
+            });
+        }, 150);
+    });
+
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            input.closest('form').submit();
+        }
+    });
+})();
+</script>
+{% endblock %}

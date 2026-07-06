@@ -1,0 +1,54 @@
+<aside class="catalog-sidebar">
+    <div class="catalog-block">
+        <h3>Категории</h3>
+        <ul class="catalog-list">
+            <li>
+                <a href="{{ url_for('index') }}"
+                   class="catalog-link {% if not active_category and not active_tag %}active{% endif %}">
+                    Все посты
+                </a>
+            </li>
+            {% for cat in categories %}
+                <li class="catalog-list-item">
+                    <a href="{{ url_for('category_posts', slug=cat.slug) }}"
+                       class="catalog-link {% if active_category and active_category.id == cat.id %}active{% endif %}">
+                        {{ cat.name }}
+                        <span class="catalog-count">{{ cat.post_count }}</span>
+                    </a>
+                    {% if g.user and cat.post_count == 0 and (cat.created_by == g.user.id or is_admin) %}
+                        <form method="POST" action="{{ url_for('delete_category', cat_id=cat.id) }}"
+                              class="catalog-delete-form"
+                              onsubmit="return confirm('Удалить категорию «{{ cat.name }}»?')">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button type="submit" class="catalog-delete-btn" title="Удалить">×</button>
+                        </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if g.user %}
+            <form method="POST" action="{{ url_for('create_category') }}" class="catalog-create-form">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <input type="text" name="name" placeholder="Новая категория" maxlength="40" required>
+                <button type="submit" class="btn btn-primary btn-sm btn-full">Создать</button>
+            </form>
+        {% else %}
+            <p class="catalog-hint"><a href="{{ url_for('login') }}">Войдите</a>, чтобы создавать категории</p>
+        {% endif %}
+    </div>
+
+    {% if tags %}
+        <div class="catalog-block">
+            <h3>Популярные теги</h3>
+            <div class="tag-cloud">
+                {% for tag in tags %}
+                    <a href="{{ url_for('tag_posts', slug=tag.slug) }}"
+                       class="tag-pill {% if active_tag and active_tag.id == tag.id %}active{% endif %}">
+                        #{{ tag.name }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</aside>

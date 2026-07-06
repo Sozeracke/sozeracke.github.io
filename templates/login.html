@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — Блог{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Вход</h1>
+        <p class="auth-subtitle">Войдите в свой аккаунт</p>
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="login">Имя пользователя или email</label>
+                <input type="text" id="login" name="login" required autofocus
+                       placeholder="username или email@example.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" required
+                       placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Войти</button>
+        </form>
+
+        <p class="auth-footer">
+            Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

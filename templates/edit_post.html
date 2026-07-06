@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать — Блог{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h1>Редактировать пост</h1>
+        <p class="form-subtitle">Внесите изменения в ваш пост</p>
+
+        <form method="POST" enctype="multipart/form-data" class="post-form">
+            <div class="form-group">
+                <label for="title">Заголовок</label>
+                <input type="text" id="title" name="title" required autofocus
+                       value="{{ post.title }}" minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="category_id">Категория</label>
+                <select id="category_id" name="category_id" required>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tags">Теги</label>
+                <input type="text" id="tags" name="tags" value="{{ selected_tags }}"
+                       placeholder="python, блог, советы (через запятую)">
+                <span class="form-hint">До 10 тегов, разделённых запятой</span>
+            </div>
+            <div class="form-group">
+                <label for="content">Текст</label>
+                <textarea id="content" name="content" required rows="12" minlength="10">{{ post.content }}</textarea>
+            </div>
+            {% if post.image %}
+                <div class="current-image">
+                    <img src="{{ url_for('static', filename='uploads/' + post.image) }}" alt="">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remove_image">
+                        Удалить текущее изображение
+                    </label>
+                </div>
+            {% endif %}
+            <div class="form-group">
+                <label for="image">{% if post.image %}Заменить изображение{% else %}Добавить изображение{% endif %}</label>
+                <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/gif,image/webp">
+                <span class="form-hint">PNG, JPG, GIF или WEBP, до 5 МБ</span>
+            </div>
+            <div class="form-actions">
+                <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost">Отмена</a>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

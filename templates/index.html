@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} — Блог{% endblock %}
+{% block main_class %}container container-wide{% endblock %}
+
+{% block content %}
+<div class="layout-with-sidebar">
+    {% include "_catalog_sidebar.html" %}
+
+    <div class="main-content">
+        <section class="hero hero-compact">
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_subtitle }}</p>
+            {% if active_category or active_tag %}
+                <a href="{{ url_for('index') }}" class="filter-reset">← Все посты</a>
+            {% endif %}
+        </section>
+
+        {% if posts %}
+            <div class="posts-grid">
+                {% for post in posts %}
+                    <article class="post-card">
+                        {% if post.image %}
+                            <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card-image-link">
+                                <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                                     alt="" class="post-card-image">
+                            </a>
+                        {% endif %}
+                        <div class="post-card-body">
+                            <div class="post-card-header">
+                                <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
+                                    {{ post.username }}
+                                </a>
+                                <time class="post-date">{{ post.created_at[:10] }}</time>
+                            </div>
+                            {% if post.category_name %}
+                                <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
+                                    {{ post.category_name }}
+                                </a>
+                            {% endif %}
+                            <h2 class="post-title">
+                                <a href="{{ url_for('view_post', post_id=post.id) }}">{{ post.title }}</a>
+                            </h2>
+                            <p class="post-excerpt">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+                            {% if post.tags %}
+                                <div class="post-tags post-tags-sm">
+                                    {% for tag in post.tags %}
+                                        <a href="{{ url_for('tag_posts', slug=tag.slug) }}" class="tag-pill">#{{ tag.name }}</a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="post-card-footer">
+                                <span class="comment-count">💬 {{ post.comment_count }}</span>
+                                <a href="{{ url_for('view_post', post_id=post.id) }}" class="read-more">Читать далее →</a>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📝</div>
+                <h2>Постов не найдено</h2>
+                <p>
+                    {% if active_category or active_tag %}
+                        В этой подборке пока нет постов.
+                    {% else %}
+                        Будьте первым — зарегистрируйтесь и опубликуйте свой пост!
+                    {% endif %}
+                </p>
+        {% if not g.user %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Создать аккаунт</a>
+        {% elif g.user.is_admin %}
+            <a href="{{ url_for('create_post') }}" class="btn btn-primary">Написать пост</a>
+        {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

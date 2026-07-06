@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Блог{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-inner">
+            <a href="{{ url_for('index') }}" class="logo">Блог</a>
+            <div class="nav-links">
+                {% if g.user %}
+                    <a href="{{ url_for('messages_inbox') }}" class="btn btn-ghost btn-sm nav-messages">
+                        Сообщения
+                        {% if unread_messages %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
+                    </a>
+                    <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
+                        {% if g.user.avatar %}
+                            <img src="{{ url_for('static', filename='uploads/' + g.user.avatar) }}"
+                                 alt="" class="nav-avatar">
+                        {% endif %}
+                        <span>
+                            {{ g.user.username }}
+                            {% if g.user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+                        </span>
+                    </a>
+                    {% if g.user.is_admin %}
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
+                    {% endif %}
+                    {% if g.user.is_admin %}
+                        <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Выйти</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm">Войти</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Регистрация</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="{% block main_class %}container{% endblock %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <p>Блог — делитесь своими мыслями</p>
+            <a href="https://sozeracke.github.io" class="footer-domain" target="_blank" rel="noopener">
+                sozeracke.github.io
+            </a>
+        </div>
+    </footer>
+</body>
+</html>

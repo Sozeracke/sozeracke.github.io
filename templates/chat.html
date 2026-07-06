@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Чат с {{ partner.username }} — Блог{% endblock %}
+{% block main_class %}container container-wide{% endblock %}
+
+{% block content %}
+<div class="messages-layout">
+    <aside class="messages-sidebar">
+        <div class="messages-sidebar-header">
+            <a href="{{ url_for('messages_inbox') }}" class="back-link">← Сообщения</a>
+            <input type="text" id="user-search" class="user-search-input"
+                   placeholder="Поиск по имени..." autocomplete="off">
+        </div>
+
+        <div class="contacts-section-label">Все пользователи</div>
+
+        <div class="conversation-list" id="contacts-list">
+            {% for contact in contacts %}
+                <a href="{{ url_for('chat_with_user', username=contact.username) }}"
+                   class="conversation-item {% if contact.username == partner.username %}active{% endif %} {% if contact.unread_count %}unread{% endif %}"
+                   data-username="{{ contact.username|lower }}">
+                    <div class="conversation-avatar">
+                        {% if contact.avatar %}
+                            <img src="{{ url_for('static', filename='uploads/' + contact.avatar) }}" alt="">
+                        {% else %}
+                            <span>{{ contact.username[0]|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="conversation-info">
+                        <div class="conversation-top">
+                            <strong>{{ contact.username }}</strong>
+                        </div>
+                        {% if contact.last_message %}
+                            <p class="conversation-preview">{{ contact.last_message[:40] }}...</p>
+                        {% endif %}
+                    </div>
+                    {% if contact.unread_count %}
+                        <span class="conversation-unread">{{ contact.unread_count }}</span>
+                    {% endif %}
+                </a>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <div class="chat-main">
+        <div class="chat-header">
+            <div class="conversation-avatar conversation-avatar-sm">
+                {% if partner.avatar %}
+                    <img src="{{ url_for('static', filename='uploads/' + partner.avatar) }}" alt="">
+                {% else %}
+                    <span>{{ partner.username[0]|upper }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <strong>{{ partner.username }}</strong>
+                <a href="{{ url_for('user_profile', username=partner.username) }}" class="chat-profile-link">
+                    Профиль
+                </a>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            {% for msg in messages %}
+                <div class="chat-bubble {% if msg.sender_id == g.user.id %}mine{% else %}theirs{% endif %}"
+                     data-id="{{ msg.id }}">
+                    {% if msg.sender_id != g.user.id %}
+                        <span class="chat-sender">{{ msg.sender_name }}</span>
+                    {% endif %}
+                    <div class="chat-text">{{ msg.content | linkify }}</div>
+                    <time class="chat-time">{{ msg.created_at[:16].replace('T', ' ') }}</time>
+                </div>
+            {% else %}
+                <p class="chat-empty" id="chat-empty">Напишите первое сообщение!</p>
+            {% endfor %}
+        </div>
+
+        <form method="POST" class="chat-input-form" id="chat-form">
+            <textarea name="content" id="chat-input" rows="2" required
+                      placeholder="Введите сообщение..." maxlength="2000"></textarea>
+            <button type="submit" class="btn btn-primary">Отправить</button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    const input = document.getElementById('user-search');
+    const list = document.getElementById('contacts-list');
+    if (input && list) {
+        input.addEventListener('input', function() {
+            const q = input.value.trim().toLowerCase();
+            list.querySelectorAll('.conversation-item').forEach(function(item) {
+                const name = item.dataset.username || '';
+                item.style.display = !q || name.includes(q) ? '' : 'none';
+            });
+        });
+    }
+
+    const convId = {{ conv_id }};
+    const container = document.getElementById('chat-messages');
+    const emptyEl = document.getElementById('chat-empty');
+    let lastId = 0;
+
+    container.querySelectorAll('.chat-bubble').forEach(el => {
+        const id = parseInt(el.dataset.id, 10);
+        if (id > lastId) lastId = id;
+    });
+
+    function scrollToBottom() {
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function addMessage(msg) {
+        if (emptyEl) emptyEl.remove();
+        const div = document.createElement('div');
+        div.className = 'chat-bubble ' + (msg.is_mine ? 'mine' : 'theirs');
+        div.dataset.id = msg.id;
+        let html = '';
+        if (!msg.is_mine) {
+            html += '<span class="chat-sender">' + msg.sender_name + '</span>';
+        }
+        html += '<div class="chat-text">' + linkifyText(msg.content) + '</div>';
+        html += '<time class="chat-time">' + msg.created_at + '</time>';
+        div.innerHTML = html;
+        container.appendChild(div);
+        scrollToBottom();
+    }
+
+    function linkifyText(text) {
+        const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return escaped.replace(
+            /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,
+            function(url) {
+                const href = url.toLowerCase().startsWith('http') ? url : 'https://' + url;
+                return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="text-link">' + url + '</a>';
+            }
+        ).replace(/\n/g, '<br>');
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch('/api/chat/' + convId + '/messages?after=' + lastId);
+            if (!res.ok) return;
+            const messages = await res.json();
+            messages.forEach(msg => {
+                if (msg.id > lastId) {
+                    addMessage(msg);
+                    lastId = msg.id;
+                }
+            });
+        } catch (e) {}
+    }
+
+    scrollToBottom();
+    setInterval(poll, 3000);
+
+    document.getElementById('chat-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('chat-form').submit();
+        }
+    });
+})();
+</script>
+{% endblock %}

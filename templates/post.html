@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} — Блог{% endblock %}
+
+{% block content %}
+<article class="post-full">
+    <header class="post-full-header">
+        <a href="{{ url_for('index') }}" class="back-link">← Назад к постам</a>
+        <h1>{{ post.title }}</h1>
+        <div class="post-meta">
+            <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
+                {{ post.username }}
+            </a>
+            <span class="post-separator">·</span>
+            <time class="post-date">{{ post.created_at[:10] }}</time>
+            {% if post.updated_at and post.updated_at != post.created_at %}
+                <span class="post-separator">·</span>
+                <span class="post-edited">изменён {{ post.updated_at[:10] }}</span>
+            {% endif %}
+        </div>
+        {% if post.category_name %}
+            <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
+                {{ post.category_name }}
+            </a>
+        {% endif %}
+        {% include "_post_tags.html" %}
+    </header>
+
+    {% if post.image %}
+        <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+             alt="" class="post-image">
+    {% endif %}
+
+    <div class="post-full-content">
+        {{ post.content | linkify }}
+    </div>
+
+    <div class="post-bottom-actions">
+        {% if g.user and g.user.id != post.author_id %}
+            <a href="{{ url_for('chat_with_user', username=post.username) }}" class="btn btn-ghost btn-sm">
+                Написать автору
+            </a>
+        {% endif %}
+        {% if g.user and (g.user.id == post.author_id or is_admin) %}
+            <div class="post-actions">
+                <a href="{{ url_for('edit_post', post_id=post.id) }}" class="btn btn-ghost btn-sm">Редактировать</a>
+                <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}"
+                      onsubmit="return confirm('{% if is_admin and g.user.id != post.author_id %}Удалить пост пользователя {{ post.username }}?{% else %}Удалить этот пост?{% endif %}')">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        {% if is_admin and g.user.id != post.author_id %}Удалить (админ){% else %}Удалить{% endif %}
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    <section class="comments-section">
+        <h2 class="comments-title">Комментарии ({{ comments|length }})</h2>
+
+        {% if g.user %}
+            <form method="POST" action="{{ url_for('add_comment', post_id=post.id) }}" class="comment-form">
+                <div class="form-group">
+                    <label for="content">Ваш комментарий</label>
+                    <textarea id="content" name="content" rows="3" required
+                              placeholder="Напишите комментарий..." minlength="2"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+            </form>
+        {% else %}
+            <p class="comments-login-hint">
+                <a href="{{ url_for('login') }}">Войдите</a>, чтобы оставить комментарий.
+            </p>
+        {% endif %}
+
+        {% if comments %}
+            <div class="comments-list">
+                {% for comment in comments %}
+                    <div class="comment">
+                        <div class="comment-header">
+                            <a href="{{ url_for('user_profile', username=comment.username) }}" class="comment-author">
+                                {{ comment.username }}
+                            </a>
+                            <time class="comment-date">{{ comment.created_at[:16].replace('T', ' ') }}</time>
+                        </div>
+                        <div class="comment-content">{{ comment.content | linkify }}</div>
+                        {% if g.user and (g.user.id == comment.author_id or is_admin) %}
+                            <form method="POST" action="{{ url_for('delete_comment', comment_id=comment.id) }}"
+                                  class="comment-delete-form"
+                                  onsubmit="return confirm('Удалить комментарий?')">
+                                <button type="submit" class="btn-link-danger">Удалить</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="comments-empty">Пока нет комментариев. Будьте первым!</p>
+        {% endif %}
+    </section>
+</article>
+{% endblock %}
