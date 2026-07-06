@@ -18,7 +18,9 @@
         <h1>
             {{ profile_user.username }}
             {% if profile_user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
-            {% include '_online_status.html' with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
+            {% with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
+                {% include '_online_status.html' %}
+            {% endwith %}
         </h1>
         <p class="profile-meta">
             На сайте с {{ profile_user.created_at[:10] }} · {{ post_count }}

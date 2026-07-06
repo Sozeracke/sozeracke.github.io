@@ -26,7 +26,9 @@
                                 {{ g.user.username }}
                                 {% if g.user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
                             </span>
-                            {% include '_online_status.html' with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                            {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                                {% include '_online_status.html' %}
+                            {% endwith %}
                         </span>
                     </a>
                     {% if g.user.is_admin %}

@@ -55,7 +55,9 @@
             <div>
                 <div class="chat-header-name">
                     <strong>{{ partner.username }}</strong>
-                    {% include '_online_status.html' with last_seen=partner.last_seen, check_user_id=none, status_id='partner-online-status' %}
+                    {% with last_seen=partner.last_seen, check_user_id=none, status_id='partner-online-status' %}
+                        {% include '_online_status.html' %}
+                    {% endwith %}
                 </div>
                 <a href="{{ url_for('user_profile', username=partner.username) }}" class="chat-profile-link">
                     Профиль

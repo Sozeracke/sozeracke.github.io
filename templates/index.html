@@ -12,7 +12,9 @@
             <h1>{{ page_title }}</h1>
             {% if show_user_online and g.user %}
                 <div class="hero-online">
-                    {% include '_online_status.html' with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                    {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                        {% include '_online_status.html' %}
+                    {% endwith %}
                 </div>
             {% elif page_subtitle %}
                 <p>{{ page_subtitle }}</p>
@@ -36,7 +38,9 @@
                             <div class="post-card-header">
                                 <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
                                     {{ post.username }}
-                                    {% include '_online_status.html' with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
+                                    {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
+                                        {% include '_online_status.html' %}
+                                    {% endwith %}
                                 </a>
                                 <time class="post-date">{{ post.created_at[:10] }}</time>
                             </div>
