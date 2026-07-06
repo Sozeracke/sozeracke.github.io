@@ -968,11 +968,6 @@ def user_profile(username):
 @login_required
 def edit_profile():
     if request.method == "POST":
-        bio = request.form.get("bio", "").strip()
-        if len(bio) > 500:
-            flash("О себе — максимум 500 символов.", "error")
-            return render_template("edit_profile.html")
-
         db = get_db()
         avatar = g.user["avatar"]
         if "avatar" in request.files:
@@ -986,8 +981,8 @@ def edit_profile():
                 avatar = saved
 
         db.execute(
-            "UPDATE users SET bio = ?, avatar = ? WHERE id = ?",
-            (bio, avatar, session["user_id"]),
+            "UPDATE users SET avatar = ? WHERE id = ?",
+            (avatar, session["user_id"]),
         )
         db.commit()
         flash("Профиль обновлён!", "success")
