@@ -8,8 +8,8 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
-    healthCheckPath: /
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --graceful-timeout 30 --threads 4
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7

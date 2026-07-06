@@ -162,13 +162,20 @@ def touch_last_seen(user_id):
                 return
         except ValueError:
             pass
-    db = get_db()
-    db.execute(
-        "UPDATE users SET last_seen = ? WHERE id = ?",
-        (now.isoformat(), user_id),
-    )
-    db.commit()
-    session["_last_seen_touch"] = now.isoformat()
+    try:
+        db = get_db()
+        db.execute(
+            "UPDATE users SET last_seen = ? WHERE id = ?",
+            (now.isoformat(), user_id),
+        )
+        db.commit()
+        session["_last_seen_touch"] = now.isoformat()
+    except Exception:
+        app.logger.exception("touch_last_seen failed for user %s", user_id)
+        try:
+            get_db()._conn.rollback()
+        except Exception:
+            pass
 
 
 app.jinja_env.filters["user_online"] = is_user_online
@@ -415,18 +422,32 @@ def get_or_create_tag(name):
         return None
     db = get_db()
     slug = slugify(name)
-    existing = db.execute(
-        "SELECT id FROM tags WHERE slug = ? OR name = ? OR name = ?",
-        (slug, name, f"#{name}"),
-    ).fetchone()
+
+    def find_tag():
+        return db.execute(
+            "SELECT id FROM tags WHERE slug = ? OR name = ? OR name = ?",
+            (slug, name, f"#{name}"),
+        ).fetchone()
+
+    existing = find_tag()
     if existing:
         return existing["id"]
     now = datetime.now().isoformat()
-    cur = db.execute(
-        "INSERT INTO tags (name, slug, created_at) VALUES (?, ?, ?)",
-        (name, slug, now),
-    )
-    return cur.lastrowid
+    try:
+        cur = db.execute(
+            "INSERT INTO tags (name, slug, created_at) VALUES (?, ?, ?)",
+            (name, slug, now),
+        )
+        if cur.lastrowid:
+            return cur.lastrowid
+    except Exception:
+        app.logger.exception("get_or_create_tag insert failed for %r", name)
+        try:
+            db._conn.rollback()
+        except Exception:
+            pass
+    existing = find_tag()
+    return existing["id"] if existing else None
 
 
 def set_post_tags(post_id, tag_names):
@@ -553,14 +574,23 @@ def before_request():
     g.user = None
     g.unread_messages = 0
     if "user_id" in session:
-        db = get_db()
-        g.user = db.execute(
-            "SELECT id, username, email, is_admin, bio, avatar, last_seen FROM users WHERE id = ?",
-            (session["user_id"],),
-        ).fetchone()
-        if g.user:
-            touch_last_seen(g.user["id"])
-            g.unread_messages = get_unread_count(g.user["id"])
+        try:
+            db = get_db()
+            g.user = db.execute(
+                "SELECT id, username, email, is_admin, bio, avatar, last_seen FROM users WHERE id = ?",
+                (session["user_id"],),
+            ).fetchone()
+            if g.user:
+                touch_last_seen(g.user["id"])
+                g.unread_messages = get_unread_count(g.user["id"])
+        except Exception:
+            app.logger.exception("before_request failed for user_id=%s", session.get("user_id"))
+            g.user = None
+            g.unread_messages = 0
+            try:
+                get_db()._conn.rollback()
+            except Exception:
+                pass
 
 
 @app.context_processor
@@ -861,51 +891,62 @@ def post_form_context(post=None):
 
 
 @app.route("/post/new", methods=["GET", "POST"])
-@admin_required
+@login_required
 def create_post():
-    if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        content = request.form.get("content", "").strip()
-        category_id = request.form.get("category_id", type=int)
-        tags_raw = request.form.get("tags", "")
-        image = save_upload(request.files.get("image"))
+    try:
+        if request.method == "POST":
+            title = request.form.get("title", "").strip()
+            content = request.form.get("content", "").strip()
+            category_id = request.form.get("category_id", type=int)
+            tags_raw = request.form.get("tags", "")
+            image = save_upload(request.files.get("image"))
 
-        if request.files.get("image") and request.files["image"].filename and not image:
-            flash("Допустимые форматы изображения: PNG, JPG, GIF, WEBP.", "error")
-            return render_template("create_post.html", **post_form_context())
+            if request.files.get("image") and request.files["image"].filename and not image:
+                flash("Допустимые форматы изображения: PNG, JPG, GIF, WEBP.", "error")
+                return render_template("create_post.html", **post_form_context())
 
-        errors = []
-        if len(title) < 3:
-            errors.append("Заголовок — минимум 3 символа.")
-        if len(content) < 10:
-            errors.append("Текст поста — минимум 10 символов.")
-        if not category_id:
-            errors.append("Выберите категорию.")
+            errors = []
+            if len(title) < 3:
+                errors.append("Заголовок — минимум 3 символа.")
+            if len(content) < 10:
+                errors.append("Текст поста — минимум 10 символов.")
+            if not category_id:
+                errors.append("Выберите категорию.")
 
-        if not errors:
-            db = get_db()
-            cat = db.execute("SELECT id FROM categories WHERE id = ?", (category_id,)).fetchone()
-            if not cat:
-                errors.append("Категория не найдена.")
+            if not errors:
+                db = get_db()
+                cat = db.execute("SELECT id FROM categories WHERE id = ?", (category_id,)).fetchone()
+                if not cat:
+                    errors.append("Категория не найдена.")
 
-        if not errors:
-            now = datetime.now().isoformat()
-            db = get_db()
-            cur = db.execute(
-                """INSERT INTO posts (user_id, title, content, image, category_id, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (session["user_id"], title, content, image, category_id, now, now),
-            )
-            post_id = cur.lastrowid
-            set_post_tags(post_id, parse_tags_input(tags_raw))
-            db.commit()
-            flash("Пост опубликован!", "success")
-            return redirect(url_for("view_post", post_id=post_id))
+            if not errors:
+                now = datetime.now().isoformat()
+                db = get_db()
+                cur = db.execute(
+                    """INSERT INTO posts (user_id, title, content, image, category_id, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (session["user_id"], title, content, image, category_id, now, now),
+                )
+                post_id = cur.lastrowid
+                if not post_id:
+                    raise RuntimeError("post insert did not return id")
+                set_post_tags(post_id, parse_tags_input(tags_raw))
+                db.commit()
+                flash("Пост опубликован!", "success")
+                return redirect(url_for("view_post", post_id=post_id))
 
-        for error in errors:
-            flash(error, "error")
+            for error in errors:
+                flash(error, "error")
 
-    return render_template("create_post.html", **post_form_context())
+        return render_template("create_post.html", **post_form_context())
+    except Exception:
+        app.logger.exception("create_post failed")
+        try:
+            get_db()._conn.rollback()
+        except Exception:
+            pass
+        flash("Не удалось создать пост. Попробуйте ещё раз без изображения.", "error")
+        return render_template("create_post.html", **post_form_context()), 500
 
 
 @app.route("/post/<int:post_id>")
@@ -1260,6 +1301,11 @@ def admin_panel():
 @app.errorhandler(404)
 def not_found(_error):
     return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def server_error(_error):
+    return render_template("404.html"), 500
 
 
 with app.app_context():

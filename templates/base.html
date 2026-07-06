@@ -29,9 +29,7 @@
                     {% if g.user.is_admin %}
                         <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
                     {% endif %}
-                    {% if g.user.is_admin %}
-                        <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
-                    {% endif %}
+                    <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
                     <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Выйти</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm">Войти</a>

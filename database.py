@@ -72,12 +72,11 @@ class DatabaseConnection:
             sql,
             flags=re.IGNORECASE,
         )
-        if (
-            sql.strip().upper().startswith("INSERT")
-            and "post_tags" in sql.lower()
-            and "ON CONFLICT" not in sql.upper()
-        ):
-            sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+        if sql.strip().upper().startswith("INSERT") and "ON CONFLICT" not in sql.upper():
+            if "post_tags" in sql.lower():
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+            elif " tags " in f" {sql.lower()} ":
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT (slug) DO NOTHING"
         return sql.replace("?", "%s")
 
     def execute(self, sql, params=()):
