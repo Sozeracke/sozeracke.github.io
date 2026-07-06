@@ -8,8 +8,10 @@
     <aside class="messages-sidebar">
         <div class="messages-sidebar-header">
             <a href="{{ url_for('messages_inbox') }}" class="back-link">← Сообщения</a>
-            <input type="text" id="user-search" class="user-search-input"
-                   placeholder="Поиск по имени..." autocomplete="off">
+            {% if g.user.is_admin %}
+                <input type="text" id="user-search" class="user-search-input"
+                       placeholder="Поиск по имени..." autocomplete="off">
+            {% endif %}
         </div>
 
         <div class="conversation-list" id="contacts-list">

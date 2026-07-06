@@ -8,13 +8,15 @@
     <aside class="messages-sidebar">
         <div class="messages-sidebar-header">
             <h1>Сообщения</h1>
-            <form method="GET" action="{{ url_for('messages_inbox') }}" class="user-search-form">
-                <input type="text" name="q" id="user-search" value="{{ search }}"
-                       placeholder="Поиск по имени..." autocomplete="off">
-                {% if search %}
-                    <a href="{{ url_for('messages_inbox') }}" class="search-clear" title="Сбросить">×</a>
-                {% endif %}
-            </form>
+            {% if g.user.is_admin %}
+                <form method="GET" action="{{ url_for('messages_inbox') }}" class="user-search-form">
+                    <input type="text" name="q" id="user-search" value="{{ search }}"
+                           placeholder="Поиск по имени..." autocomplete="off">
+                    {% if search %}
+                        <a href="{{ url_for('messages_inbox') }}" class="search-clear" title="Сбросить">×</a>
+                    {% endif %}
+                </form>
+            {% endif %}
         </div>
 
         {% if contacts %}

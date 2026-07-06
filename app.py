@@ -1380,8 +1380,8 @@ def delete_comment(comment_id):
 @login_required
 def messages_inbox():
     try:
-        search = request.args.get("q", "").strip()
         admins_only = not g.user["is_admin"]
+        search = request.args.get("q", "").strip() if g.user["is_admin"] else ""
         contacts = get_message_contacts(g.user["id"], search, admins_only=admins_only)
         return render_template(
             "messages.html",
@@ -1405,6 +1405,8 @@ def api_heartbeat():
 @app.route("/api/users/search")
 @login_required
 def api_users_search():
+    if not g.user["is_admin"]:
+        return jsonify([])
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify([])
