@@ -72,7 +72,11 @@ class DatabaseConnection:
             sql,
             flags=re.IGNORECASE,
         )
-        if "post_tags" in sql.lower() and "ON CONFLICT" not in sql.upper():
+        if (
+            sql.strip().upper().startswith("INSERT")
+            and "post_tags" in sql.lower()
+            and "ON CONFLICT" not in sql.upper()
+        ):
             sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
         return sql.replace("?", "%s")
 
