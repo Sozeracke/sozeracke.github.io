@@ -63,6 +63,7 @@ OLD_DEFAULT_CATEGORIES = [
 ]
 
 SITE_OWNER = os.environ.get("SITE_OWNER", "Sozeracke")
+SITE_NAME = os.environ.get("SITE_NAME", "Sozeracke Private")
 ONLINE_THRESHOLD_SECONDS = 300
 LAST_SEEN_TOUCH_INTERVAL = 60
 
@@ -459,7 +460,7 @@ def fetch_posts(category_slug=None, tag_slug=None):
     db = get_db()
     query = """
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
-               users.username, users.id AS author_id,
+               users.username, users.id AS author_id, users.last_seen AS author_last_seen,
                categories.name AS category_name, categories.slug AS category_slug,
                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
         FROM posts
@@ -593,6 +594,7 @@ def inject_globals():
         "unread_messages": getattr(g, "unread_messages", 0),
         "site_url": app.config["SITE_URL"],
         "public_url": app.config["PUBLIC_URL"],
+        "site_name": SITE_NAME,
         "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
     }
 
@@ -604,7 +606,8 @@ def render_posts_page(category_slug=None, tag_slug=None):
     posts = attach_tags_to_posts(posts_raw)
 
     page_title = "Последние посты"
-    page_subtitle = "Читайте и публикуйте свои истории"
+    page_subtitle = None
+    show_user_online = not category_slug and not tag_slug
     active_category = None
     active_tag = None
 
@@ -629,6 +632,7 @@ def render_posts_page(category_slug=None, tag_slug=None):
         tags=tags,
         page_title=page_title,
         page_subtitle=page_subtitle,
+        show_user_online=show_user_online,
         active_category=active_category,
         active_tag=active_tag,
     )

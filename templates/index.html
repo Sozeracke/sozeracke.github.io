@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ page_title }} — Блог{% endblock %}
+{% block title %}{{ page_title }} — {{ site_name }}{% endblock %}
 {% block main_class %}container container-wide{% endblock %}
 
 {% block content %}
@@ -10,7 +10,13 @@
     <div class="main-content">
         <section class="hero hero-compact">
             <h1>{{ page_title }}</h1>
-            <p>{{ page_subtitle }}</p>
+            {% if show_user_online and g.user %}
+                <div class="hero-online">
+                    {% include '_online_status.html' with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                </div>
+            {% elif page_subtitle %}
+                <p>{{ page_subtitle }}</p>
+            {% endif %}
             {% if active_category or active_tag %}
                 <a href="{{ url_for('index') }}" class="filter-reset">← Все посты</a>
             {% endif %}
@@ -30,6 +36,7 @@
                             <div class="post-card-header">
                                 <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
                                     {{ post.username }}
+                                    {% include '_online_status.html' with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
                                 </a>
                                 <time class="post-date">{{ post.created_at[:10] }}</time>
                             </div>

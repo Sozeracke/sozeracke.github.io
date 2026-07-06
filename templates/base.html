@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Блог{% endblock %}</title>
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-inner">
-            <a href="{{ url_for('index') }}" class="logo">Блог</a>
+            <a href="{{ url_for('index') }}" class="logo">{{ site_name }}</a>
             <div class="nav-links">
                 {% if g.user %}
                     <a href="{{ url_for('messages_inbox') }}" class="btn btn-ghost btn-sm nav-messages">
@@ -21,9 +21,12 @@
                             <img src="{{ url_for('static', filename='uploads/' + g.user.avatar) }}"
                                  alt="" class="nav-avatar">
                         {% endif %}
-                        <span>
-                            {{ g.user.username }}
-                            {% if g.user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+                        <span class="nav-user-info">
+                            <span class="nav-username">
+                                {{ g.user.username }}
+                                {% if g.user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+                            </span>
+                            {% include '_online_status.html' with last_seen=g.user.last_seen, check_user_id=g.user.id %}
                         </span>
                     </a>
                     {% if g.user.is_admin %}
@@ -55,7 +58,7 @@
 
     <footer class="footer">
         <div class="container footer-inner">
-            <p>Блог — делитесь своими мыслями</p>
+            <p>{{ site_name }}</p>
             <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
             <span class="footer-separator">·</span>
             <a href="https://sozeracke.github.io" class="footer-domain" target="_blank" rel="noopener">

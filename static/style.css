@@ -74,8 +74,29 @@ body {
 }
 
 .nav-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: var(--text-muted);
     font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.nav-user:hover {
+    color: var(--text);
+}
+
+.nav-user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.nav-username {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 /* Buttons */
@@ -227,6 +248,8 @@ body {
 }
 
 .post-author {
+    display: inline-flex;
+    align-items: center;
     color: var(--primary);
     font-weight: 600;
     font-size: 0.85rem;
@@ -703,6 +726,14 @@ body {
     border-color: var(--primary);
 }
 
+.hero-online {
+    margin-top: 4px;
+}
+
+.hero-online .online-status {
+    font-size: 0.9rem;
+}
+
 .online-status {
     display: inline-flex;
     align-items: center;
@@ -710,6 +741,27 @@ body {
     font-size: 0.75rem;
     font-weight: 600;
     vertical-align: middle;
+}
+
+.online-status-compact {
+    margin-left: 6px;
+}
+
+.post-author .online-status-compact .online-dot {
+    width: 7px;
+    height: 7px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .online-status .online-dot {

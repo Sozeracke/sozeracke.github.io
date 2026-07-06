@@ -1,7 +1,13 @@
-<span class="online-status {% if last_seen | user_online(check_user_id) %}is-online{% else %}is-offline{% endif %}"
+<span class="online-status {% if compact %}online-status-compact{% endif %} {% if last_seen | user_online(check_user_id) %}is-online{% else %}is-offline{% endif %}"
       {% if status_id %}id="{{ status_id }}"{% endif %}>
     <span class="online-dot" aria-hidden="true"></span>
+    {% if not compact %}
     <span class="online-label">
         {% if last_seen | user_online(check_user_id) %}В сети{% else %}Не в сети{% endif %}
     </span>
+    {% else %}
+    <span class="online-label visually-hidden">
+        {% if last_seen | user_online(check_user_id) %}В сети{% else %}Не в сети{% endif %}
+    </span>
+    {% endif %}
 </span>
