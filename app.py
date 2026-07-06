@@ -1195,11 +1195,13 @@ def admin_panel():
     return render_template("admin.html", posts=posts, users=users, stats=stats)
 
 
+with app.app_context():
+    init_db()
+
+
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "make-admin":
         make_admin(sys.argv[2])
         sys.exit(0)
 
-    with app.app_context():
-        init_db()
     app.run(debug=True, host="0.0.0.0", port=5000)
