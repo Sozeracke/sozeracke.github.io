@@ -1,7 +1,7 @@
 {% if post_tags %}
     <div class="post-tags">
         {% for tag in post_tags %}
-            <a href="{{ url_for('tag_posts', slug=tag.slug) }}" class="tag-pill">#{{ tag.name }}</a>
+            <a href="{{ url_for('tag_posts', slug=tag.slug) }}" class="tag-pill">#{{ tag.name | tag_display }}</a>
         {% endfor %}
     </div>
 {% endif %}

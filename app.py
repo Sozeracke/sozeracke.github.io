@@ -120,6 +120,20 @@ def linkify(text):
 app.jinja_env.filters["linkify"] = linkify
 
 
+def normalize_tag_name(name):
+    name = name.strip()
+    while name.startswith("#"):
+        name = name[1:].strip()
+    return name[:40]
+
+
+def tag_display(name):
+    return normalize_tag_name(name)
+
+
+app.jinja_env.filters["tag_display"] = tag_display
+
+
 def migrate_db():
     db = get_db()
     db.executescript("""
@@ -416,17 +430,21 @@ def attach_tags_to_posts(posts):
 def parse_tags_input(raw):
     names = []
     for part in raw.split(","):
-        name = part.strip()
+        name = normalize_tag_name(part)
         if name and name not in names:
-            names.append(name[:40])
+            names.append(name)
     return names[:10]
 
 
 def get_or_create_tag(name):
+    name = normalize_tag_name(name)
+    if not name:
+        return None
     db = get_db()
     slug = slugify(name)
     existing = db.execute(
-        "SELECT id FROM tags WHERE slug = ? OR name = ?", (slug, name)
+        "SELECT id FROM tags WHERE slug = ? OR name = ? OR name = ?",
+        (slug, name, f"#{name}"),
     ).fetchone()
     if existing:
         return existing["id"]
@@ -443,10 +461,11 @@ def set_post_tags(post_id, tag_names):
     db.execute("DELETE FROM post_tags WHERE post_id = ?", (post_id,))
     for name in tag_names:
         tag_id = get_or_create_tag(name)
-        db.execute(
-            "INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)",
-            (post_id, tag_id),
-        )
+        if tag_id:
+            db.execute(
+                "INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)",
+                (post_id, tag_id),
+            )
 
 
 def fetch_posts(category_slug=None, tag_slug=None):
@@ -586,7 +605,7 @@ def render_posts_page(category_slug=None, tag_slug=None):
             "SELECT id, name, slug FROM tags WHERE slug = ?", (tag_slug,)
         ).fetchone()
         if active_tag:
-            page_title = f"Тег: #{active_tag['name']}"
+            page_title = f"Тег: #{tag_display(active_tag['name'])}"
             page_subtitle = f"{len(posts)} постов с этим тегом"
 
     return render_template(
@@ -627,7 +646,7 @@ def tag_posts(slug):
 
 
 @app.route("/categories/create", methods=["POST"])
-@login_required
+@admin_required
 def create_category():
     name = request.form.get("name", "").strip()
     redirect_to = request.form.get("next") or request.referrer or url_for("index")
@@ -658,7 +677,7 @@ def create_category():
 
 
 @app.route("/categories/<int:cat_id>/delete", methods=["POST"])
-@login_required
+@admin_required
 def delete_category(cat_id):
     db = get_db()
     category = db.execute("SELECT * FROM categories WHERE id = ?", (cat_id,)).fetchone()
@@ -674,10 +693,6 @@ def delete_category(cat_id):
 
     if post_count > 0:
         flash("Нельзя удалить категорию с постами.", "error")
-        return redirect(redirect_to)
-
-    if category["created_by"] != session["user_id"] and not is_admin():
-        flash("Вы можете удалять только свои категории.", "error")
         return redirect(redirect_to)
 
     db.execute("DELETE FROM categories WHERE id = ?", (cat_id,))
@@ -846,7 +861,7 @@ def post_form_context(post=None):
     selected_tags = ""
     if post:
         tags = get_post_tags(post["id"])
-        selected_tags = ", ".join(t["name"] for t in tags)
+        selected_tags = ", ".join(tag_display(t["name"]) for t in tags)
     return {
         "categories": categories,
         "selected_category": selected_category,

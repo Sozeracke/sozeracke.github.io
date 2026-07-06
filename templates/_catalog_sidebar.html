@@ -15,7 +15,7 @@
                         {{ cat.name }}
                         <span class="catalog-count">{{ cat.post_count }}</span>
                     </a>
-                    {% if g.user and cat.post_count == 0 and (cat.created_by == g.user.id or is_admin) %}
+                    {% if is_admin and cat.post_count == 0 %}
                         <form method="POST" action="{{ url_for('delete_category', cat_id=cat.id) }}"
                               class="catalog-delete-form"
                               onsubmit="return confirm('Удалить категорию «{{ cat.name }}»?')">
@@ -27,14 +27,12 @@
             {% endfor %}
         </ul>
 
-        {% if g.user %}
+        {% if is_admin %}
             <form method="POST" action="{{ url_for('create_category') }}" class="catalog-create-form">
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <input type="text" name="name" placeholder="Новая категория" maxlength="40" required>
                 <button type="submit" class="btn btn-primary btn-sm btn-full">Создать</button>
             </form>
-        {% else %}
-            <p class="catalog-hint"><a href="{{ url_for('login') }}">Войдите</a>, чтобы создавать категории</p>
         {% endif %}
     </div>
 
@@ -45,7 +43,7 @@
                 {% for tag in tags %}
                     <a href="{{ url_for('tag_posts', slug=tag.slug) }}"
                        class="tag-pill {% if active_tag and active_tag.id == tag.id %}active{% endif %}">
-                        #{{ tag.name }}
+                        #{{ tag.name | tag_display }}
                     </a>
                 {% endfor %}
             </div>
