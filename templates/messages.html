@@ -17,10 +17,6 @@
             </form>
         </div>
 
-        <div class="contacts-section-label">
-            Все пользователи ({{ contacts|length }})
-        </div>
-
         {% if contacts %}
             <div class="conversation-list" id="contacts-list">
                 {% for contact in contacts %}
@@ -63,7 +59,13 @@
         {% else %}
             <p class="messages-empty">
                 {% if search %}
-                    Пользователи не найдены по запросу «{{ search }}».
+                    {% if admins_only %}
+                        Администраторы не найдены по запросу «{{ search }}».
+                    {% else %}
+                        Пользователи не найдены по запросу «{{ search }}».
+                    {% endif %}
+                {% elif admins_only %}
+                    Администраторы пока недоступны.
                 {% else %}
                     Других пользователей пока нет.
                 {% endif %}
@@ -74,8 +76,8 @@
     <div class="messages-placeholder">
         <div class="messages-placeholder-inner">
             <div class="empty-icon">💬</div>
-            <h2>Выберите пользователя</h2>
-            <p>Все зарегистрированные пользователи доступны для общения</p>
+            <h2>{% if admins_only %}Выберите администратора{% else %}Выберите пользователя{% endif %}</h2>
+            <p>{% if admins_only %}Напишите администратору сайта{% else %}Выберите собеседника из списка слева{% endif %}</p>
         </div>
     </div>
 </div>

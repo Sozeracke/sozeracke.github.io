@@ -12,8 +12,6 @@
                    placeholder="Поиск по имени..." autocomplete="off">
         </div>
 
-        <div class="contacts-section-label">Все пользователи</div>
-
         <div class="conversation-list" id="contacts-list">
             {% for contact in contacts %}
                 <a href="{{ url_for('chat_with_user', username=contact.username) }}"

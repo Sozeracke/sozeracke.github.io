@@ -422,7 +422,7 @@ def get_categories():
     """).fetchall()
 
 
-def get_message_contacts(user_id, search=""):
+def get_message_contacts(user_id, search="", admins_only=False):
     db = get_db()
     query = """
         SELECT u.id, u.username, u.avatar, u.last_seen, u.is_admin,
@@ -441,6 +441,8 @@ def get_message_contacts(user_id, search=""):
         WHERE u.id != ?
     """
     params = [user_id, user_id, user_id, user_id]
+    if admins_only:
+        query += " AND u.is_admin = 1"
     if search:
         query += " AND u.username LIKE ?"
         params.append(f"%{search}%")
@@ -1236,8 +1238,14 @@ def delete_comment(comment_id):
 def messages_inbox():
     try:
         search = request.args.get("q", "").strip()
-        contacts = get_message_contacts(g.user["id"], search)
-        return render_template("messages.html", contacts=contacts, search=search)
+        admins_only = not g.user["is_admin"]
+        contacts = get_message_contacts(g.user["id"], search, admins_only=admins_only)
+        return render_template(
+            "messages.html",
+            contacts=contacts,
+            search=search,
+            admins_only=admins_only,
+        )
     except Exception:
         app.logger.exception("messages_inbox failed")
         flash("Не удалось загрузить сообщения. Попробуйте ещё раз.", "error")
@@ -1258,12 +1266,14 @@ def api_users_search():
     if not query:
         return jsonify([])
     db = get_db()
-    rows = db.execute(
-        """SELECT id, username, avatar FROM users
-           WHERE id != ? AND username LIKE ?
-           ORDER BY username LIMIT 20""",
-        (session["user_id"], f"%{query}%"),
-    ).fetchall()
+    admins_only = not g.user["is_admin"]
+    sql = """SELECT id, username, avatar FROM users
+             WHERE id != ? AND username LIKE ?"""
+    params = [session["user_id"], f"%{query}%"]
+    if admins_only:
+        sql += " AND is_admin = 1"
+    sql += " ORDER BY username LIMIT 20"
+    rows = db.execute(sql, params).fetchall()
     return jsonify([{"username": r["username"], "avatar": r["avatar"]} for r in rows])
 
 
@@ -1291,6 +1301,10 @@ def _chat_with_user(username):
 
     if partner["id"] == g.user["id"]:
         flash("Нельзя написать самому себе.", "warning")
+        return redirect(url_for("messages_inbox"))
+
+    if not g.user["is_admin"] and not partner["is_admin"]:
+        flash("Обычные пользователи могут писать только администраторам.", "error")
         return redirect(url_for("messages_inbox"))
 
     conv_id = get_or_create_conversation(g.user["id"], partner["id"])
@@ -1327,7 +1341,8 @@ def _chat_with_user(username):
         ORDER BY messages.created_at ASC
     """, (conv_id,)).fetchall()
 
-    contacts = get_message_contacts(g.user["id"])
+    admins_only = not g.user["is_admin"]
+    contacts = get_message_contacts(g.user["id"], admins_only=admins_only)
 
     return render_template(
         "chat.html",
@@ -1335,6 +1350,7 @@ def _chat_with_user(username):
         messages=messages,
         conv_id=conv_id,
         contacts=contacts,
+        admins_only=admins_only,
     )
 
 
