@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-inner">
-            <a href="{{ url_for('index') }}" class="logo">{{ site_name }}</a>
+            <a href="{{ url_for('index') }}" class="logo">
+                <span class="logo-title">{{ site_name }}</span>
+                <span class="logo-byline">{{ site_byline }}</span>
+            </a>
 
             {% if g.user %}
                 <div class="nav-spacer"></div>
@@ -70,7 +73,10 @@
 
     <footer class="footer">
         <div class="container footer-inner">
-            <p>{{ site_name }}</p>
+            <div class="footer-brand">
+                <span class="footer-title">{{ site_name }}</span>
+                <span class="footer-byline">{{ site_byline }}</span>
+            </div>
             <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
             <span class="footer-separator">·</span>
             <a href="https://sozeracke.github.io" class="footer-domain" target="_blank" rel="noopener">

@@ -74,7 +74,8 @@ OLD_DEFAULT_CATEGORIES = [
 ]
 
 SITE_OWNER = os.environ.get("SITE_OWNER", "Sozeracke")
-SITE_NAME = os.environ.get("SITE_NAME", "Sozeracke Private")
+SITE_NAME = os.environ.get("SITE_NAME", "Приватный форум")
+SITE_BYLINE = os.environ.get("SITE_BYLINE", "by sozeracke")
 ONLINE_THRESHOLD_SECONDS = 300
 LAST_SEEN_TOUCH_INTERVAL = 60
 
@@ -868,6 +869,7 @@ def inject_globals():
         "site_url": app.config["SITE_URL"],
         "public_url": app.config["PUBLIC_URL"],
         "site_name": SITE_NAME,
+        "site_byline": SITE_BYLINE,
         "media_url": media_url,
         "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
         "is_post_scheduled": is_post_scheduled,
