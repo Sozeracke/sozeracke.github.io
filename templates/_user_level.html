@@ -1,0 +1,5 @@
+{% set level = get_user_level_info(xp, username=username, is_admin=is_admin|default(false)) %}
+<span class="user-level user-level-{{ level.name|lower }}" title="{{ level.xp }} XP">
+    <span class="user-level-icon">{{ level.icon }}</span>
+    <span class="user-level-name">{{ level.name }}</span>
+</span>

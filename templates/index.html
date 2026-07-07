@@ -17,55 +17,17 @@
             {% if active_category or active_tag %}
                 <a href="{{ url_for('index') }}" class="filter-reset">← Все посты</a>
             {% endif %}
+            <form action="{{ url_for('search') }}" method="GET" class="hero-search">
+                <input type="search" name="q" value="{{ search_query or '' }}"
+                       placeholder="Поиск по постам..." class="hero-search-input" autocomplete="off">
+                <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+            </form>
         </section>
 
         {% if posts %}
             <div class="posts-grid">
                 {% for post in posts %}
-                    <article class="post-card">
-                        {% if post.image %}
-                            <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card-image-link">
-                                <img src="{{ media_url(post.image) }}"
-                                     alt="" class="post-card-image">
-                            </a>
-                        {% endif %}
-                        <div class="post-card-body">
-                            <div class="post-card-header">
-                                <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                                    {{ post.username }}
-                                    {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
-                                        {% include '_online_status.html' %}
-                                    {% endwith %}
-                                </a>
-                                <div class="post-card-meta">
-                                    <time class="post-date">{{ post.created_at[:10] }}</time>
-                                    {% if is_post_private(post) %}
-                                        <span class="badge badge-private">приватный</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% if post.category_name %}
-                                <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
-                                    {{ post.category_name }}
-                                </a>
-                            {% endif %}
-                            <h2 class="post-title">
-                                <a href="{{ url_for('view_post', post_id=post.id) }}">{{ post.title }}</a>
-                            </h2>
-                            <p class="post-excerpt">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
-                            {% if post.tags %}
-                                <div class="post-tags post-tags-sm">
-                                    {% for tag in post.tags %}
-                                        <a href="{{ url_for('tag_posts', slug=tag.slug) }}" class="tag-pill">#{{ tag.name | tag_display }}</a>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            <div class="post-card-footer">
-                                <span class="comment-count">💬 {{ post.comment_count }}</span>
-                                <a href="{{ url_for('view_post', post_id=post.id) }}" class="read-more">Читать далее →</a>
-                            </div>
-                        </div>
-                    </article>
+                    {% include "_post_card.html" %}
                 {% endfor %}
             </div>
         {% else %}
@@ -73,7 +35,9 @@
                 <div class="empty-icon">📝</div>
                 <h2>Постов не найдено</h2>
                 <p>
-                    {% if active_category or active_tag %}
+                    {% if search_query %}
+                        По запросу «{{ search_query }}» ничего не найдено.
+                    {% elif active_category or active_tag %}
                         В этой подборке пока нет постов.
                     {% else %}
                         Будьте первым — зарегистрируйтесь и опубликуйте свой пост!

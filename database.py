@@ -79,6 +79,8 @@ class DatabaseConnection:
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+pinned_conversations\b", sql, re.IGNORECASE):
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+            elif re.search(r"\binto\s+post_likes\b", sql, re.IGNORECASE):
+                sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+conversations\b", sql, re.IGNORECASE):
                 sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
             elif re.search(r"\binto\s+tags\b", sql, re.IGNORECASE):
@@ -91,6 +93,7 @@ class DatabaseConnection:
             "post_tags" not in lower
             and "post_access" not in lower
             and "pinned_conversations" not in lower
+            and "post_likes" not in lower
             and not re.search(r"\binto\s+media\b", lower)
         )
 
@@ -175,7 +178,8 @@ def postgres_schema():
             is_admin INTEGER NOT NULL DEFAULT 0,
             bio TEXT NOT NULL DEFAULT '',
             avatar TEXT,
-            last_seen TEXT
+            last_seen TEXT,
+            xp INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS categories (
@@ -250,6 +254,13 @@ def postgres_schema():
             conversation_id INTEGER NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
             pinned_at TEXT NOT NULL,
             PRIMARY KEY (user_id, conversation_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS post_likes (
+            post_id INTEGER NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (post_id, user_id)
         );
 
         CREATE TABLE IF NOT EXISTS media (
@@ -351,6 +362,15 @@ def sqlite_schema():
             PRIMARY KEY (user_id, conversation_id),
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
             FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS post_likes (
+            post_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (post_id, user_id),
+            FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS media (

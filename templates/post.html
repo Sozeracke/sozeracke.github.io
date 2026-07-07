@@ -23,6 +23,9 @@
         <div class="post-meta">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
                 {{ post.username }}
+                {% with xp=post.author_xp|default(0), username=post.username %}
+                    {% include '_user_level.html' %}
+                {% endwith %}
             </a>
             <span class="post-separator">·</span>
             <time class="post-date">{{ post.created_at[:10] }}</time>
@@ -46,6 +49,21 @@
 
     <div class="post-full-content">
         {{ post.content | linkify }}
+    </div>
+
+    <div class="post-engagement-bar">
+        {% if g.user and not is_scheduled_preview %}
+            <form method="POST" action="{{ url_for('toggle_post_like', post_id=post.id) }}" class="like-form">
+                <button type="submit"
+                        class="like-btn {% if post.user_liked %}like-btn--active{% endif %}">
+                    <span class="like-btn-icon">{% if post.user_liked %}❤️{% else %}🤍{% endif %}</span>
+                    <span class="like-btn-count">{{ post.like_count|default(0) }}</span>
+                </button>
+            </form>
+        {% else %}
+            <span class="like-count-display">❤️ {{ post.like_count|default(0) }}</span>
+        {% endif %}
+        <span class="comment-count-display">💬 {{ comments|length }}</span>
     </div>
 
     <div class="post-bottom-actions">

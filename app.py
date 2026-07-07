@@ -77,6 +77,23 @@ SITE_OWNER = os.environ.get("SITE_OWNER", "Sozeracke")
 SITE_NAME = os.environ.get("SITE_NAME", "Приватный форум")
 SITE_BYLINE = os.environ.get("SITE_BYLINE", "by sozeracke")
 ONLINE_THRESHOLD_SECONDS = 300
+
+USER_LEVELS = [
+    {"min_xp": 0, "name": "Новичок", "icon": "🥉"},
+    {"min_xp": 100, "name": "Активный", "icon": "🥈"},
+    {"min_xp": 300, "name": "Эксперт", "icon": "🥇"},
+    {"min_xp": 700, "name": "VIP", "icon": "💎"},
+    {"min_xp": 1500, "name": "Основатель", "icon": "👑"},
+]
+
+XP_REWARD = {
+    "register": 10,
+    "message": 2,
+    "comment": 5,
+    "post": 15,
+    "like": 1,
+    "liked": 3,
+}
 LAST_SEEN_TOUCH_INTERVAL = 60
 
 CYRILLIC_TO_LATIN = {
@@ -208,6 +225,8 @@ def migrate_db():
         db.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
     if "last_seen" not in user_cols:
         db.execute("ALTER TABLE users ADD COLUMN last_seen TEXT")
+    if "xp" not in user_cols:
+        db.execute("ALTER TABLE users ADD COLUMN xp INTEGER NOT NULL DEFAULT 0")
 
     post_cols = table_columns(db, "posts")
     if "image" not in post_cols:
@@ -421,6 +440,71 @@ def admin_required(f):
 
 def publication_cutoff():
     return datetime.now().isoformat()
+
+
+def current_user_id():
+    user = getattr(g, "user", None)
+    return user["id"] if user else None
+
+
+def award_xp(user_id, amount):
+    if not user_id or amount <= 0:
+        return
+    db = get_db()
+    db.execute("UPDATE users SET xp = xp + ? WHERE id = ?", (amount, user_id))
+
+
+def get_user_level_info(xp, username=None, is_admin=False):
+    if username == SITE_OWNER:
+        top = USER_LEVELS[-1]
+        return {
+            **top,
+            "xp": xp,
+            "next_xp": None,
+            "progress": 100,
+        }
+    current = USER_LEVELS[0]
+    nxt = None
+    for level in USER_LEVELS:
+        if xp >= level["min_xp"]:
+            current = level
+        else:
+            nxt = level
+            break
+    if nxt:
+        span = nxt["min_xp"] - current["min_xp"]
+        gained = xp - current["min_xp"]
+        progress = int(min(100, max(0, gained / span * 100))) if span else 100
+        next_xp = nxt["min_xp"]
+    else:
+        progress = 100
+        next_xp = None
+    return {**current, "xp": xp, "next_xp": next_xp, "progress": progress}
+
+
+def post_engagement_sql():
+    user_id = current_user_id()
+    liked_sql = (
+        "EXISTS(SELECT 1 FROM post_likes pl "
+        "WHERE pl.post_id = posts.id AND pl.user_id = ?) AS user_liked"
+    )
+    if user_id:
+        return (
+            """
+               (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id)
+                   AS comment_count,
+               (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id)
+                   AS like_count,
+            """
+            + liked_sql
+        ), [user_id]
+    return """
+               (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id)
+                   AS comment_count,
+               (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id)
+                   AS like_count,
+               0 AS user_liked
+        """, []
 
 
 def post_publish_time(post):
@@ -708,21 +792,23 @@ def set_post_tags(post_id, tag_names):
             )
 
 
-def fetch_posts(category_slug=None, tag_slug=None):
+def fetch_posts(category_slug=None, tag_slug=None, search=None):
     db = get_db()
     cutoff = publication_cutoff()
     access_sql, access_params = build_post_access_filter(getattr(g, "user", None))
-    query = """
+    engagement_sql, engagement_params = post_engagement_sql()
+    query = f"""
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
                posts.published_at, posts.is_private,
                users.username, users.id AS author_id, users.last_seen AS author_last_seen,
+               users.xp AS author_xp,
                categories.name AS category_name, categories.slug AS category_slug,
-               (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
+               {engagement_sql}
         FROM posts
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
     """
-    params = [cutoff, *access_params]
+    params = [cutoff, *access_params, *engagement_params]
     conditions = [post_is_public_sql("posts"), access_sql]
 
     if category_slug:
@@ -732,6 +818,9 @@ def fetch_posts(category_slug=None, tag_slug=None):
         query += " JOIN post_tags ON post_tags.post_id = posts.id JOIN tags ON tags.id = post_tags.tag_id"
         conditions.append("tags.slug = ?")
         params.append(tag_slug)
+    if search:
+        conditions.append("(posts.title LIKE ? OR posts.content LIKE ?)")
+        params.extend([f"%{search}%", f"%{search}%"])
 
     query += " WHERE " + " AND ".join(conditions)
     query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
@@ -868,7 +957,8 @@ def before_request():
         try:
             db = get_db()
             g.user = db.execute(
-                "SELECT id, username, email, is_admin, bio, avatar, last_seen FROM users WHERE id = ?",
+                "SELECT id, username, email, is_admin, bio, avatar, last_seen, xp "
+                "FROM users WHERE id = ?",
                 (session["user_id"],),
             ).fetchone()
             if g.user:
@@ -900,20 +990,28 @@ def inject_globals():
         "is_post_private": is_post_private,
         "can_manage_post_access": can_manage_post_access,
         "format_datetime_local": format_datetime_local,
+        "get_user_level_info": get_user_level_info,
+        "USER_LEVELS": USER_LEVELS,
     }
 
 
-def render_posts_page(category_slug=None, tag_slug=None):
+def render_posts_page(category_slug=None, tag_slug=None, search=None):
     categories = get_categories()
     tags = get_popular_tags()
-    posts_raw = fetch_posts(category_slug=category_slug, tag_slug=tag_slug)
+    posts_raw = fetch_posts(
+        category_slug=category_slug, tag_slug=tag_slug, search=search
+    )
     posts = attach_tags_to_posts(posts_raw)
 
     page_title = "Последние посты"
     page_subtitle = None
     active_category = None
     active_tag = None
+    search_query = search
 
+    if search:
+        page_title = f"Поиск: {search}"
+        page_subtitle = f"Найдено постов: {len(posts)}"
     if category_slug:
         active_category = next((c for c in categories if c["slug"] == category_slug), None)
         if active_category:
@@ -937,12 +1035,21 @@ def render_posts_page(category_slug=None, tag_slug=None):
         page_subtitle=page_subtitle,
         active_category=active_category,
         active_tag=active_tag,
+        search_query=search_query,
     )
 
 
 @app.route("/")
 def index():
     return render_posts_page()
+
+
+@app.route("/search")
+def search():
+    query = request.args.get("q", "").strip()
+    if not query:
+        return redirect(url_for("index"))
+    return render_posts_page(search=query)
 
 
 @app.route("/category/<slug>")
@@ -1064,6 +1171,7 @@ def register():
                     ),
                 )
                 new_user_id = cur.lastrowid
+                award_xp(new_user_id, XP_REWARD["register"])
                 db.commit()
                 ensure_site_owner_contact(new_user_id)
                 session.clear()
@@ -1114,7 +1222,8 @@ def logout():
 def user_profile(username):
     db = get_db()
     profile_user = db.execute(
-        "SELECT id, username, bio, avatar, created_at, is_admin, last_seen FROM users WHERE username = ?",
+        "SELECT id, username, bio, avatar, created_at, is_admin, last_seen, xp "
+        "FROM users WHERE username = ?",
         (username,),
     ).fetchone()
 
@@ -1122,16 +1231,20 @@ def user_profile(username):
         flash("Пользователь не найден.", "error")
         return redirect(url_for("index"))
 
-    posts_query = """
+    engagement_sql, engagement_params = post_engagement_sql()
+    posts_query = f"""
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
                posts.published_at, posts.is_private,
+               users.username, users.id AS author_id, users.xp AS author_xp,
+               users.last_seen AS author_last_seen,
                categories.name AS category_name, categories.slug AS category_slug,
-               (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) AS comment_count
+               {engagement_sql}
         FROM posts
+        JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
         WHERE posts.user_id = ?
     """
-    posts_params = [profile_user["id"]]
+    posts_params = [profile_user["id"], *engagement_params]
     viewer_is_owner = g.user and g.user["id"] == profile_user["id"]
     if viewer_is_owner or is_admin():
         pass
@@ -1150,12 +1263,18 @@ def user_profile(username):
     posts_query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
     posts_raw = db.execute(posts_query, posts_params).fetchall()
     posts = attach_tags_to_posts(posts_raw)
+    level_info = get_user_level_info(
+        profile_user["xp"] or 0,
+        username=profile_user["username"],
+        is_admin=bool(profile_user["is_admin"]),
+    )
 
     return render_template(
         "profile.html",
         profile_user=profile_user,
         posts=posts,
         post_count=len(posts),
+        level_info=level_info,
     )
 
 
@@ -1266,6 +1385,8 @@ def create_post():
                 if not post_id:
                     raise RuntimeError("post insert did not return id")
                 set_post_tags(post_id, parse_tags_input(tags_raw))
+                if not is_scheduled:
+                    award_xp(session["user_id"], XP_REWARD["post"])
                 db.commit()
                 if is_scheduled:
                     flash(
@@ -1298,17 +1419,22 @@ def create_post():
 @app.route("/post/<int:post_id>")
 def view_post(post_id):
     db = get_db()
-    post = db.execute("""
+    engagement_sql, engagement_params = post_engagement_sql()
+    post = db.execute(
+        f"""
         SELECT posts.id, posts.title, posts.content, posts.image,
                posts.created_at, posts.updated_at, posts.category_id, posts.published_at,
                posts.is_private, posts.user_id,
-               users.username, users.id AS author_id,
-               categories.name AS category_name, categories.slug AS category_slug
+               users.username, users.id AS author_id, users.xp AS author_xp,
+               categories.name AS category_name, categories.slug AS category_slug,
+               {engagement_sql}
         FROM posts
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
         WHERE posts.id = ?
-    """, (post_id,)).fetchone()
+        """,
+        (post_id, *engagement_params),
+    ).fetchone()
 
     if not post:
         flash("Пост не найден.", "error")
@@ -1452,6 +1578,7 @@ def delete_post(post_id):
     delete_file(post["image"])
     db.execute("DELETE FROM post_access WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM post_tags WHERE post_id = ?", (post_id,))
+    db.execute("DELETE FROM post_likes WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM comments WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM posts WHERE id = ?", (post_id,))
     db.commit()
@@ -1488,9 +1615,62 @@ def add_comment(post_id):
         "INSERT INTO comments (post_id, user_id, content, created_at) VALUES (?, ?, ?, ?)",
         (post_id, session["user_id"], content, datetime.now().isoformat()),
     )
+    award_xp(session["user_id"], XP_REWARD["comment"])
     db.commit()
     flash("Комментарий добавлен!", "success")
     return redirect(url_for("view_post", post_id=post_id))
+
+
+@app.route("/post/<int:post_id>/like", methods=["POST"])
+@login_required
+def toggle_post_like(post_id):
+    db = get_db()
+    post = db.execute(
+        "SELECT id, user_id, published_at, created_at, is_private FROM posts WHERE id = ?",
+        (post_id,),
+    ).fetchone()
+    if not post:
+        flash("Пост не найден.", "error")
+        return redirect(url_for("index"))
+    if not is_post_published(post):
+        flash("Лайкать можно только опубликованные посты.", "warning")
+        return redirect(url_for("view_post", post_id=post_id))
+    if not can_view_post(post):
+        flash("Пост не найден.", "error")
+        return redirect(url_for("index"))
+
+    user_id = session["user_id"]
+    existing = db.execute(
+        "SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?",
+        (post_id, user_id),
+    ).fetchone()
+
+    if existing:
+        db.execute(
+            "DELETE FROM post_likes WHERE post_id = ? AND user_id = ?",
+            (post_id, user_id),
+        )
+        liked = False
+    else:
+        db.execute(
+            "INSERT INTO post_likes (post_id, user_id, created_at) VALUES (?, ?, ?)",
+            (post_id, user_id, datetime.now().isoformat()),
+        )
+        award_xp(user_id, XP_REWARD["like"])
+        if post["user_id"] != user_id:
+            award_xp(post["user_id"], XP_REWARD["liked"])
+        liked = True
+
+    db.commit()
+    like_count = db.execute(
+        "SELECT COUNT(*) FROM post_likes WHERE post_id = ?",
+        (post_id,),
+    ).fetchone()[0]
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"liked": liked, "like_count": like_count})
+
+    return redirect(request.referrer or url_for("view_post", post_id=post_id))
 
 
 @app.route("/comment/<int:comment_id>/delete", methods=["POST"])
@@ -1647,6 +1827,7 @@ def _chat_with_user(username):
                 "INSERT INTO messages (conversation_id, sender_id, content, created_at) VALUES (?, ?, ?, ?)",
                 (conv_id, g.user["id"], content, datetime.now().isoformat()),
             )
+            award_xp(g.user["id"], XP_REWARD["message"])
             db.commit()
             return redirect(url_for("chat_with_user", username=username))
 
