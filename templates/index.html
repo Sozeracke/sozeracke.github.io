@@ -44,15 +44,15 @@
             <div class="empty-state">
                 <div class="empty-icon">📝</div>
                 <h2>Постов не найдено</h2>
-                <p>
-                    {% if search_query %}
-                        По запросу «{{ search_query }}» ничего не найдено.
-                    {% elif active_category or active_tag %}
-                        В этой подборке пока нет постов.
-                    {% else %}
-                        Будьте первым — зарегистрируйтесь и опубликуйте свой пост!
-                    {% endif %}
-                </p>
+                {% if search_query or active_category or active_tag %}
+                    <p>
+                        {% if search_query %}
+                            По запросу «{{ search_query }}» ничего не найдено.
+                        {% else %}
+                            В этой подборке пока нет постов.
+                        {% endif %}
+                    </p>
+                {% endif %}
         {% if not g.user %}
             <a href="{{ url_for('register') }}" class="btn btn-primary">Создать аккаунт</a>
         {% elif g.user.is_admin %}
