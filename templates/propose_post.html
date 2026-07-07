@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Предложить пост — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h1>Предложить пост</h1>
+        <p class="form-subtitle">
+            Заполните форму — администратор проверит заявку и опубликует пост от вашего имени.
+        </p>
+
+        <form method="POST" enctype="multipart/form-data" class="post-form">
+            <div class="form-group">
+                <label for="title">Заголовок</label>
+                <input type="text" id="title" name="title" required autofocus
+                       placeholder="О чём ваш пост?" minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="category_id">Категория</label>
+                {% if categories %}
+                    <select id="category_id" name="category_id" required>
+                        <option value="">— Выберите категорию —</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <p class="form-hint no-categories-hint">
+                        Категории пока не созданы. Попросите администратора добавить категорию.
+                    </p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="tags">Теги</label>
+                <input type="text" id="tags" name="tags"
+                       placeholder="python, блог, советы (через запятую)">
+                <span class="form-hint">До 10 тегов через запятую</span>
+            </div>
+            <div class="form-group">
+                <label for="content">Текст</label>
+                <textarea id="content" name="content" required rows="12"
+                          placeholder="Напишите текст поста..." minlength="10"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="image">Изображение (необязательно)</label>
+                <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/gif,image/webp">
+                <span class="form-hint">PNG, JPG, GIF или WEBP, до 5 МБ</span>
+            </div>
+            <div class="form-actions">
+                <a href="{{ url_for('my_proposals') }}" class="btn btn-ghost">Мои заявки</a>
+                <button type="submit" class="btn btn-primary" {% if not categories %}disabled{% endif %}>
+                    Отправить заявку
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

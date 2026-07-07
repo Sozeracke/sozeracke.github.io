@@ -13,7 +13,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=19">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20">
     <script src="{{ url_for('static', filename='theme.js') }}?v=16" defer></script>
 </head>
 <body>
@@ -49,7 +49,13 @@
                     </a>
                     {% if g.user.is_admin %}
                         <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
+                        <a href="{{ url_for('admin_proposals') }}" class="nav-messages-btn">
+                            <span class="nav-messages-label">Заявки</span>
+                            {% if pending_proposals %}<span class="nav-badge">{{ pending_proposals }}</span>{% endif %}
+                        </a>
                         <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
+                    {% else %}
+                        <a href="{{ url_for('propose_post') }}" class="btn btn-primary btn-sm">Предложить пост</a>
                     {% endif %}
                 </div>
 

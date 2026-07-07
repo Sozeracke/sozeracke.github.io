@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Заявка: {{ proposal.title }} — {{ site_name }}{% endblock %}
+
+{% block content %}
+<article class="post-full">
+    <header class="post-full-header">
+        <a href="{{ url_for('admin_proposals') }}" class="back-link">← К заявкам</a>
+        <h1>{{ proposal.title }}</h1>
+        <div class="post-meta">
+            <a href="{{ url_for('user_profile', username=proposal.username) }}" class="post-author">
+                {{ proposal.username }}
+            </a>
+            <span class="post-separator">·</span>
+            <time class="post-date">{{ proposal.created_at[:16].replace('T', ' ') }}</time>
+            <span class="post-separator">·</span>
+            <span class="badge badge-proposal-{{ proposal.status }}">
+                {{ proposal_status_label(proposal.status) }}
+            </span>
+        </div>
+        {% if proposal.category_name %}
+            <span class="category-badge">{{ proposal.category_name }}</span>
+        {% endif %}
+        {% if proposal.tags %}
+            <div class="post-tags post-tags-sm">
+                {% for tag in proposal.tags.split(',') %}
+                    {% if tag.strip() %}
+                        <span class="tag-pill">#{{ tag | tag_display }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </header>
+
+    {% if proposal.image %}
+        <img src="{{ media_url(proposal.image) }}" alt="" class="post-image">
+    {% endif %}
+
+    <div class="post-full-content">
+        {{ proposal.content | linkify }}
+    </div>
+
+    {% if proposal.status == 'pending' %}
+        <div class="proposal-review-actions">
+            <form method="POST" action="{{ url_for('approve_proposal', proposal_id=proposal.id) }}"
+                  onsubmit="return confirm('Опубликовать этот пост от имени {{ proposal.username }}?')">
+                <button type="submit" class="btn btn-primary">Одобрить и опубликовать</button>
+            </form>
+            <form method="POST" action="{{ url_for('reject_proposal', proposal_id=proposal.id) }}"
+                  class="proposal-reject-form">
+                <div class="form-group">
+                    <label for="admin_note">Причина отклонения (необязательно)</label>
+                    <textarea id="admin_note" name="admin_note" rows="2"
+                              placeholder="Сообщение для автора заявки"></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('Отклонить эту заявку?')">
+                    Отклонить
+                </button>
+            </form>
+        </div>
+    {% elif proposal.status == 'approved' and proposal.post_id %}
+        <div class="proposal-review-actions">
+            <a href="{{ url_for('view_post', post_id=proposal.post_id) }}" class="btn btn-primary">
+                Открыть опубликованный пост
+            </a>
+        </div>
+    {% elif proposal.status == 'rejected' and proposal.admin_note %}
+        <p class="proposal-note">Комментарий при отклонении: {{ proposal.admin_note }}</p>
+    {% endif %}
+</article>
+{% endblock %}

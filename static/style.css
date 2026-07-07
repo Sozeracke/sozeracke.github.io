@@ -1136,14 +1136,140 @@ body {
     font-size: 0.85rem;
 }
 
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.stat-card-link:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
 .admin-section {
     margin-bottom: 40px;
+}
+
+.admin-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.admin-section-header h2 {
+    margin-bottom: 0;
 }
 
 .admin-section h2 {
     font-size: 1.2rem;
     font-weight: 700;
     margin-bottom: 16px;
+}
+
+.proposal-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.proposal-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.proposal-filter:hover,
+.proposal-filter.active {
+    border-color: var(--primary);
+    color: var(--text);
+    background: rgba(108, 99, 255, 0.1);
+}
+
+.proposals-list {
+    display: grid;
+    gap: 16px;
+    padding-bottom: 48px;
+}
+
+.proposal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+}
+
+.proposal-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.proposal-card-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.proposal-meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.proposal-note {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    font-size: 0.9rem;
+}
+
+.proposal-review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.proposal-reject-form {
+    flex: 1;
+    min-width: 240px;
+}
+
+.badge-proposal-pending {
+    background: rgba(245, 158, 11, 0.18);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.badge-proposal-approved {
+    background: rgba(34, 197, 94, 0.18);
+    color: var(--success);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.badge-proposal-rejected {
+    background: rgba(239, 68, 68, 0.18);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
 .admin-table-wrap {

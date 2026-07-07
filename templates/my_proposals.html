@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Мои заявки — {{ site_name }}{% endblock %}
+
+{% block content %}
+<section class="hero hero-compact">
+    <h1>Мои заявки на посты</h1>
+    <p>Статус ваших предложений для публикации на форуме.</p>
+    <a href="{{ url_for('propose_post') }}" class="btn btn-primary btn-sm">Предложить новый пост</a>
+</section>
+
+{% if proposals %}
+    <div class="proposals-list">
+        {% for proposal in proposals %}
+            <article class="proposal-card">
+                <div class="proposal-card-header">
+                    <h2>{{ proposal.title }}</h2>
+                    <span class="badge badge-proposal-{{ proposal.status }}">
+                        {{ proposal_status_label(proposal.status) }}
+                    </span>
+                </div>
+                <p class="proposal-meta">
+                    {% if proposal.category_name %}{{ proposal.category_name }} · {% endif %}
+                    {{ proposal.created_at[:16].replace('T', ' ') }}
+                </p>
+                {% if proposal.status == 'rejected' and proposal.admin_note %}
+                    <p class="proposal-note">Комментарий администратора: {{ proposal.admin_note }}</p>
+                {% endif %}
+                {% if proposal.status == 'approved' and proposal.post_id %}
+                    <a href="{{ url_for('view_post', post_id=proposal.post_id) }}" class="read-more">
+                        Открыть опубликованный пост →
+                    </a>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📨</div>
+        <h2>Заявок пока нет</h2>
+        <p>Предложите свой первый пост — администратор его рассмотрит.</p>
+        <a href="{{ url_for('propose_post') }}" class="btn btn-primary">Предложить пост</a>
+    </div>
+{% endif %}
+{% endblock %}

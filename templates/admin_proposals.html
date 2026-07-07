@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Заявки на посты — {{ site_name }}{% endblock %}
+
+{% block content %}
+<section class="admin-header">
+    <h1>Заявки на посты</h1>
+    <p class="admin-subtitle">Рассмотрение предложений от пользователей</p>
+    <a href="{{ url_for('admin_panel') }}" class="filter-reset">← Панель администратора</a>
+</section>
+
+<div class="proposal-filters">
+    <a href="{{ url_for('admin_proposals', status='pending') }}"
+       class="proposal-filter {% if active_status == 'pending' %}active{% endif %}">
+        На рассмотрении <span class="catalog-count">{{ counts.pending }}</span>
+    </a>
+    <a href="{{ url_for('admin_proposals', status='approved') }}"
+       class="proposal-filter {% if active_status == 'approved' %}active{% endif %}">
+        Одобренные <span class="catalog-count">{{ counts.approved }}</span>
+    </a>
+    <a href="{{ url_for('admin_proposals', status='rejected') }}"
+       class="proposal-filter {% if active_status == 'rejected' %}active{% endif %}">
+        Отклонённые <span class="catalog-count">{{ counts.rejected }}</span>
+    </a>
+    <a href="{{ url_for('admin_proposals', status='all') }}"
+       class="proposal-filter {% if active_status == 'all' %}active{% endif %}">
+        Все
+    </a>
+</div>
+
+{% if proposals %}
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Заголовок</th>
+                    <th>Автор</th>
+                    <th>Категория</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proposal in proposals %}
+                    <tr>
+                        <td>{{ proposal.title }}</td>
+                        <td>
+                            <a href="{{ url_for('user_profile', username=proposal.username) }}">
+                                {{ proposal.username }}
+                            </a>
+                        </td>
+                        <td>{{ proposal.category_name or '—' }}</td>
+                        <td>
+                            <span class="badge badge-proposal-{{ proposal.status }}">
+                                {{ proposal_status_label(proposal.status) }}
+                            </span>
+                        </td>
+                        <td>{{ proposal.created_at[:16].replace('T', ' ') }}</td>
+                        <td class="admin-actions">
+                            <a href="{{ url_for('review_proposal', proposal_id=proposal.id) }}"
+                               class="btn btn-ghost btn-sm">Открыть</a>
+                            {% if proposal.status == 'approved' and proposal.post_id %}
+                                <a href="{{ url_for('view_post', post_id=proposal.post_id) }}"
+                                   class="btn btn-ghost btn-sm">Пост</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p class="admin-empty">В этой категории заявок нет.</p>
+{% endif %}
+{% endblock %}

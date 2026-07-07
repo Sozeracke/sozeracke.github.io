@@ -263,6 +263,22 @@ def postgres_schema():
             PRIMARY KEY (post_id, user_id)
         );
 
+        CREATE TABLE IF NOT EXISTS post_proposals (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users (id),
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            image TEXT,
+            category_id INTEGER REFERENCES categories (id),
+            tags TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'pending',
+            admin_note TEXT NOT NULL DEFAULT '',
+            reviewed_by INTEGER REFERENCES users (id),
+            reviewed_at TEXT,
+            post_id INTEGER REFERENCES posts (id),
+            created_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS media (
             filename TEXT PRIMARY KEY,
             data BYTEA NOT NULL,
@@ -371,6 +387,26 @@ def sqlite_schema():
             PRIMARY KEY (post_id, user_id),
             FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS post_proposals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            image TEXT,
+            category_id INTEGER,
+            tags TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'pending',
+            admin_note TEXT NOT NULL DEFAULT '',
+            reviewed_by INTEGER,
+            reviewed_at TEXT,
+            post_id INTEGER,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (category_id) REFERENCES categories (id),
+            FOREIGN KEY (reviewed_by) REFERENCES users (id),
+            FOREIGN KEY (post_id) REFERENCES posts (id)
         );
 
         CREATE TABLE IF NOT EXISTS media (

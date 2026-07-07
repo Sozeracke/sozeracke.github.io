@@ -91,9 +91,14 @@ XP_REWARD = {
     "message": 2,
     "comment": 5,
     "post": 15,
+    "proposal": 5,
     "like": 1,
     "liked": 3,
 }
+
+PROPOSAL_STATUS_PENDING = "pending"
+PROPOSAL_STATUS_APPROVED = "approved"
+PROPOSAL_STATUS_REJECTED = "rejected"
 LAST_SEEN_TOUCH_INTERVAL = 60
 
 CYRILLIC_TO_LATIN = {
@@ -978,6 +983,7 @@ def before_request():
 
     g.user = None
     g.unread_messages = 0
+    g.pending_proposals = 0
     if "user_id" in session:
         try:
             db = get_db()
@@ -989,6 +995,8 @@ def before_request():
             if g.user:
                 touch_last_seen(g.user["id"])
                 g.unread_messages = get_unread_count(g.user["id"])
+                if g.user["is_admin"]:
+                    g.pending_proposals = get_pending_proposals_count()
         except Exception:
             app.logger.exception("before_request failed for user_id=%s", session.get("user_id"))
             g.user = None
@@ -1017,6 +1025,8 @@ def inject_globals():
         "format_datetime_local": format_datetime_local,
         "get_user_level_info": get_user_level_info,
         "USER_LEVELS": USER_LEVELS,
+        "pending_proposals": getattr(g, "pending_proposals", 0),
+        "proposal_status_label": proposal_status_label,
     }
 
 
@@ -1330,6 +1340,46 @@ def edit_profile():
     return render_template("edit_profile.html")
 
 
+def get_pending_proposals_count():
+    db = get_db()
+    return db.execute(
+        "SELECT COUNT(*) FROM post_proposals WHERE status = ?",
+        (PROPOSAL_STATUS_PENDING,),
+    ).fetchone()[0]
+
+
+def proposal_status_label(status):
+    return {
+        PROPOSAL_STATUS_PENDING: "На рассмотрении",
+        PROPOSAL_STATUS_APPROVED: "Одобрена",
+        PROPOSAL_STATUS_REJECTED: "Отклонена",
+    }.get(status, status)
+
+
+def validate_post_fields(title, content, category_id):
+    errors = []
+    if len(title) < 3:
+        errors.append("Заголовок — минимум 3 символа.")
+    if len(content) < 10:
+        errors.append("Текст поста — минимум 10 символов.")
+    if not category_id:
+        errors.append("Выберите категорию.")
+    elif not errors:
+        db = get_db()
+        cat = db.execute(
+            "SELECT id FROM categories WHERE id = ?", (category_id,)
+        ).fetchone()
+        if not cat:
+            errors.append("Категория не найдена.")
+    return errors
+
+
+def proposal_form_context():
+    db = get_db()
+    categories = db.execute("SELECT id, name FROM categories ORDER BY name").fetchall()
+    return {"categories": categories}
+
+
 def post_form_context(post=None):
     db = get_db()
     categories = db.execute("SELECT id, name FROM categories ORDER BY name").fetchall()
@@ -1350,6 +1400,241 @@ def post_form_context(post=None):
         ),
         "is_private_checked": bool(post and post.get("is_private")),
     }
+
+
+@app.route("/post/propose", methods=["GET", "POST"])
+@login_required
+def propose_post():
+    if is_admin():
+        return redirect(url_for("create_post"))
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        category_id = request.form.get("category_id", type=int)
+        tags_raw = request.form.get("tags", "")
+        image = save_upload(request.files.get("image"))
+
+        if request.files.get("image") and request.files["image"].filename and not image:
+            flash("Допустимые форматы изображения: PNG, JPG, GIF, WEBP.", "error")
+            return render_template("propose_post.html", **proposal_form_context())
+
+        errors = validate_post_fields(title, content, category_id)
+        if not errors:
+            now = datetime.now().isoformat()
+            db = get_db()
+            db.execute(
+                """INSERT INTO post_proposals
+                   (user_id, title, content, image, category_id, tags, status, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    session["user_id"],
+                    title,
+                    content,
+                    image,
+                    category_id,
+                    tags_raw.strip(),
+                    PROPOSAL_STATUS_PENDING,
+                    now,
+                ),
+            )
+            award_xp(session["user_id"], XP_REWARD["proposal"])
+            db.commit()
+            flash(
+                "Заявка отправлена! Администратор рассмотрит её и опубликует пост, "
+                "если всё в порядке.",
+                "success",
+            )
+            return redirect(url_for("my_proposals"))
+
+        for error in errors:
+            flash(error, "error")
+
+    return render_template("propose_post.html", **proposal_form_context())
+
+
+@app.route("/proposals")
+@login_required
+def my_proposals():
+    db = get_db()
+    proposals = db.execute(
+        """
+        SELECT post_proposals.id, post_proposals.title, post_proposals.status,
+               post_proposals.created_at, post_proposals.admin_note, post_proposals.post_id,
+               categories.name AS category_name
+        FROM post_proposals
+        LEFT JOIN categories ON categories.id = post_proposals.category_id
+        WHERE post_proposals.user_id = ?
+        ORDER BY post_proposals.created_at DESC
+        """,
+        (session["user_id"],),
+    ).fetchall()
+    return render_template("my_proposals.html", proposals=proposals)
+
+
+@app.route("/admin/proposals")
+@admin_required
+def admin_proposals():
+    db = get_db()
+    status = request.args.get("status", PROPOSAL_STATUS_PENDING)
+    if status not in (
+        PROPOSAL_STATUS_PENDING,
+        PROPOSAL_STATUS_APPROVED,
+        PROPOSAL_STATUS_REJECTED,
+        "all",
+    ):
+        status = PROPOSAL_STATUS_PENDING
+
+    query = """
+        SELECT post_proposals.id, post_proposals.title, post_proposals.content,
+               post_proposals.image, post_proposals.tags, post_proposals.status,
+               post_proposals.admin_note, post_proposals.created_at, post_proposals.post_id,
+               post_proposals.reviewed_at,
+               users.username, users.id AS author_id,
+               categories.name AS category_name,
+               reviewers.username AS reviewer_name
+        FROM post_proposals
+        JOIN users ON users.id = post_proposals.user_id
+        LEFT JOIN categories ON categories.id = post_proposals.category_id
+        LEFT JOIN users reviewers ON reviewers.id = post_proposals.reviewed_by
+    """
+    params = []
+    if status != "all":
+        query += " WHERE post_proposals.status = ?"
+        params.append(status)
+    query += " ORDER BY post_proposals.created_at DESC"
+
+    proposals = db.execute(query, params).fetchall()
+    counts = {
+        "pending": db.execute(
+            "SELECT COUNT(*) FROM post_proposals WHERE status = ?",
+            (PROPOSAL_STATUS_PENDING,),
+        ).fetchone()[0],
+        "approved": db.execute(
+            "SELECT COUNT(*) FROM post_proposals WHERE status = ?",
+            (PROPOSAL_STATUS_APPROVED,),
+        ).fetchone()[0],
+        "rejected": db.execute(
+            "SELECT COUNT(*) FROM post_proposals WHERE status = ?",
+            (PROPOSAL_STATUS_REJECTED,),
+        ).fetchone()[0],
+    }
+    return render_template(
+        "admin_proposals.html",
+        proposals=proposals,
+        active_status=status,
+        counts=counts,
+    )
+
+
+@app.route("/admin/proposals/<int:proposal_id>")
+@admin_required
+def review_proposal(proposal_id):
+    db = get_db()
+    proposal = db.execute(
+        """
+        SELECT post_proposals.*, users.username, categories.name AS category_name
+        FROM post_proposals
+        JOIN users ON users.id = post_proposals.user_id
+        LEFT JOIN categories ON categories.id = post_proposals.category_id
+        WHERE post_proposals.id = ?
+        """,
+        (proposal_id,),
+    ).fetchone()
+    if not proposal:
+        flash("Заявка не найдена.", "error")
+        return redirect(url_for("admin_proposals"))
+    return render_template("review_proposal.html", proposal=proposal)
+
+
+@app.route("/admin/proposals/<int:proposal_id>/approve", methods=["POST"])
+@admin_required
+def approve_proposal(proposal_id):
+    db = get_db()
+    proposal = db.execute(
+        "SELECT * FROM post_proposals WHERE id = ?", (proposal_id,)
+    ).fetchone()
+    if not proposal:
+        flash("Заявка не найдена.", "error")
+        return redirect(url_for("admin_proposals"))
+    if proposal["status"] != PROPOSAL_STATUS_PENDING:
+        flash("Эта заявка уже рассмотрена.", "warning")
+        return redirect(url_for("review_proposal", proposal_id=proposal_id))
+
+    now = datetime.now().isoformat()
+    cur = db.execute(
+        """INSERT INTO posts
+           (user_id, title, content, image, category_id, created_at, updated_at,
+            published_at, is_private)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)""",
+        (
+            proposal["user_id"],
+            proposal["title"],
+            proposal["content"],
+            proposal["image"],
+            proposal["category_id"],
+            now,
+            now,
+            now,
+        ),
+    )
+    post_id = cur.lastrowid
+    if not post_id:
+        flash("Не удалось создать пост.", "error")
+        return redirect(url_for("review_proposal", proposal_id=proposal_id))
+
+    set_post_tags(post_id, parse_tags_input(proposal["tags"] or ""))
+    db.execute(
+        """UPDATE post_proposals
+           SET status = ?, reviewed_by = ?, reviewed_at = ?, post_id = ?
+           WHERE id = ?""",
+        (
+            PROPOSAL_STATUS_APPROVED,
+            session["user_id"],
+            now,
+            post_id,
+            proposal_id,
+        ),
+    )
+    award_xp(proposal["user_id"], XP_REWARD["post"])
+    db.commit()
+    flash("Заявка одобрена, пост опубликован!", "success")
+    return redirect(url_for("view_post", post_id=post_id))
+
+
+@app.route("/admin/proposals/<int:proposal_id>/reject", methods=["POST"])
+@admin_required
+def reject_proposal(proposal_id):
+    db = get_db()
+    proposal = db.execute(
+        "SELECT * FROM post_proposals WHERE id = ?", (proposal_id,)
+    ).fetchone()
+    if not proposal:
+        flash("Заявка не найдена.", "error")
+        return redirect(url_for("admin_proposals"))
+    if proposal["status"] != PROPOSAL_STATUS_PENDING:
+        flash("Эта заявка уже рассмотрена.", "warning")
+        return redirect(url_for("review_proposal", proposal_id=proposal_id))
+
+    admin_note = request.form.get("admin_note", "").strip()[:500]
+    now = datetime.now().isoformat()
+    if proposal["image"]:
+        delete_file(proposal["image"])
+    db.execute(
+        """UPDATE post_proposals
+           SET status = ?, admin_note = ?, reviewed_by = ?, reviewed_at = ?, image = NULL
+           WHERE id = ?""",
+        (
+            PROPOSAL_STATUS_REJECTED,
+            admin_note,
+            session["user_id"],
+            now,
+            proposal_id,
+        ),
+    )
+    db.commit()
+    flash("Заявка отклонена.", "info")
+    return redirect(url_for("admin_proposals"))
 
 
 @app.route("/post/new", methods=["GET", "POST"])
@@ -2067,6 +2352,7 @@ def admin_panel():
         "posts": db.execute("SELECT COUNT(*) FROM posts").fetchone()[0],
         "comments": db.execute("SELECT COUNT(*) FROM comments").fetchone()[0],
         "messages": db.execute("SELECT COUNT(*) FROM messages").fetchone()[0],
+        "pending_proposals": get_pending_proposals_count(),
     }
 
     return render_template("admin.html", posts=posts, users=users, stats=stats)
