@@ -30,24 +30,11 @@
                        placeholder="python, блог, советы (через запятую)">
                 <span class="form-hint">До 10 тегов через запятую, символ # необязателен</span>
             </div>
-            <div class="form-group">
-                <label for="content">Текст</label>
-                <textarea id="content" name="content" required rows="12" minlength="10">{{ post.content }}</textarea>
-            </div>
-            {% if post.image %}
-                <div class="current-image">
-                    <img src="{{ media_url(post.image) }}" alt="">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="remove_image">
-                        Удалить текущее изображение
-                    </label>
-                </div>
-            {% endif %}
-            <div class="form-group">
-                <label for="image">{% if post.image %}Заменить изображение{% else %}Добавить изображение{% endif %}</label>
-                <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/gif,image/webp">
-                <span class="form-hint">PNG, JPG, GIF или WEBP, до 5 МБ</span>
-            </div>
+
+            {% with content_value=post.content, cover_image=post.image %}
+                {% include "_post_media_fields.html" %}
+            {% endwith %}
+
             <div class="form-group">
                 <label class="checkbox-label">
                     <input type="checkbox" id="is_private" name="is_private"
@@ -87,6 +74,7 @@
         </form>
     </div>
 </div>
+<script src="{{ url_for('static', filename='post-editor.js') }}?v=1" defer></script>
 <script>
 (function () {
     const checkbox = document.getElementById('schedule_post');

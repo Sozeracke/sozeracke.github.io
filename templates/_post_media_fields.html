@@ -1,0 +1,48 @@
+<div class="form-group">
+    <label for="content">Текст</label>
+    <div class="post-editor-toolbar">
+        <button type="button" class="btn btn-ghost btn-sm" id="insert-image-placeholder">
+            Вставить место для фото
+        </button>
+    </div>
+    <textarea id="content" name="content" required rows="12" minlength="10"
+              placeholder="Напишите текст поста... Ссылки https:// будут кликабельными. Вставьте [[IMAGE]] там, где нужно фото.">{{ content_value or '' }}</textarea>
+    <span class="form-hint">
+        Чтобы вставить фото в нужное место, нажмите «Вставить место для фото» или напишите [[IMAGE]] в тексте.
+    </span>
+</div>
+
+<div class="form-group">
+    <label for="content_images">Фото в тексте поста</label>
+    <input type="file" id="content_images" name="content_images" multiple
+           accept="image/png,image/jpeg,image/gif,image/webp">
+    <span class="form-hint">
+        Можно выбрать несколько файлов. Они подставятся вместо [[IMAGE]] по порядку или добавятся в конец текста.
+    </span>
+    <ul id="content-images-preview" class="content-images-preview" hidden></ul>
+    {% if inline_images %}
+        <div class="inline-images-current">
+            <span class="form-hint">Фото уже в тексте:</span>
+            <div class="inline-images-grid">
+                {% for filename in inline_images %}
+                    <img src="{{ media_url(filename) }}" alt="" class="inline-images-thumb">
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="form-group">
+    <label for="cover_image">Обложка для ленты</label>
+    {% if cover_image %}
+        <div class="current-image">
+            <img src="{{ media_url(cover_image) }}" alt="">
+            <label class="checkbox-label">
+                <input type="checkbox" name="remove_image">
+                Удалить текущую обложку
+            </label>
+        </div>
+    {% endif %}
+    <input type="file" id="cover_image" name="image" accept="image/png,image/jpeg,image/gif,image/webp">
+    <span class="form-hint">Показывается на главной в карточке поста. PNG, JPG, GIF или WEBP, до 5 МБ</span>
+</div>

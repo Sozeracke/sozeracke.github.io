@@ -49,11 +49,11 @@
 
     {% if post.image %}
         <img src="{{ media_url(post.image) }}"
-             alt="" class="post-image">
+             alt="" class="post-cover-image">
     {% endif %}
 
     <div class="post-full-content">
-        {{ post.content | linkify }}
+        {{ post.content | render_post_content }}
     </div>
 
     <div class="post-engagement-bar">

@@ -161,6 +161,77 @@ def linkify(text):
 
 app.jinja_env.filters["linkify"] = linkify
 
+IMAGE_PLACEHOLDER = "[[IMAGE]]"
+INLINE_IMG_MARKER_RE = re.compile(
+    r"\[img:([a-f0-9]+\.(?:png|jpg|jpeg|gif|webp))\]", re.IGNORECASE
+)
+
+
+def save_uploads(files):
+    names = []
+    for file in files or []:
+        filename = save_upload(file)
+        if filename:
+            names.append(filename)
+    return names
+
+
+def embed_content_images(content, files):
+    uploaded = save_uploads(files)
+    if not uploaded:
+        return content
+    if IMAGE_PLACEHOLDER in content:
+        result = content
+        for filename in uploaded:
+            result = result.replace(IMAGE_PLACEHOLDER, f"[img:{filename}]", 1)
+        return result
+    markers = "\n\n".join(f"[img:{filename}]" for filename in uploaded)
+    content = (content or "").rstrip()
+    return f"{content}\n\n{markers}" if content else markers
+
+
+def strip_inline_image_markers(content):
+    if not content:
+        return ""
+    cleaned = INLINE_IMG_MARKER_RE.sub("", content)
+    cleaned = cleaned.replace(IMAGE_PLACEHOLDER, "")
+    return re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+
+
+def extract_inline_images(content):
+    if not content:
+        return []
+    return list(dict.fromkeys(INLINE_IMG_MARKER_RE.findall(content)))
+
+
+def render_post_content(text):
+    if not text:
+        return Markup("")
+    parts = INLINE_IMG_MARKER_RE.split(str(text))
+    chunks = []
+    for index, part in enumerate(parts):
+        if index % 2 == 0:
+            if part:
+                chunks.append(str(linkify(part)))
+            continue
+        if MEDIA_FILENAME_RE.match(part):
+            url = escape(media_url(part))
+            chunks.append(
+                f'<figure class="post-inline-figure">'
+                f'<img src="{url}" alt="" class="post-inline-image" loading="lazy">'
+                f"</figure>"
+            )
+    return Markup("".join(chunks))
+
+
+def delete_inline_images_from_content(content):
+    for filename in extract_inline_images(content):
+        delete_file(filename)
+
+
+app.jinja_env.filters["render_post_content"] = render_post_content
+app.jinja_env.filters["post_excerpt"] = strip_inline_image_markers
+
 
 def normalize_tag_name(name):
     name = name.strip()
@@ -1385,7 +1456,7 @@ def validate_post_fields(title, content, category_id):
 def proposal_form_context():
     db = get_db()
     categories = db.execute("SELECT id, name FROM categories ORDER BY name").fetchall()
-    return {"categories": categories}
+    return {"categories": categories, "inline_images": []}
 
 
 def post_form_context(post=None):
@@ -1407,6 +1478,7 @@ def post_form_context(post=None):
             else ""
         ),
         "is_private_checked": bool(post and post.get("is_private")),
+        "inline_images": extract_inline_images(post["content"]) if post else [],
     }
 
 
@@ -1422,9 +1494,12 @@ def propose_post():
         category_id = request.form.get("category_id", type=int)
         tags_raw = request.form.get("tags", "")
         image = save_upload(request.files.get("image"))
+        content = embed_content_images(
+            content, request.files.getlist("content_images")
+        )
 
         if request.files.get("image") and request.files["image"].filename and not image:
-            flash("Допустимые форматы изображения: PNG, JPG, GIF, WEBP.", "error")
+            flash("Допустимые форматы обложки: PNG, JPG, GIF, WEBP.", "error")
             return render_template("propose_post.html", **proposal_form_context())
 
         errors = validate_post_fields(title, content, category_id)
@@ -1655,9 +1730,12 @@ def create_post():
             category_id = request.form.get("category_id", type=int)
             tags_raw = request.form.get("tags", "")
             image = save_upload(request.files.get("image"))
+            content = embed_content_images(
+                content, request.files.getlist("content_images")
+            )
 
             if request.files.get("image") and request.files["image"].filename and not image:
-                flash("Допустимые форматы изображения: PNG, JPG, GIF, WEBP.", "error")
+                flash("Допустимые форматы обложки: PNG, JPG, GIF, WEBP.", "error")
                 return render_template("create_post.html", **post_form_context())
 
             errors = []
@@ -1811,9 +1889,13 @@ def edit_post(post_id):
         remove_image = request.form.get("remove_image") == "on"
         new_image = save_upload(request.files.get("image"))
         image = post["image"]
+        old_inline_images = set(extract_inline_images(post["content"]))
+        content = embed_content_images(
+            content, request.files.getlist("content_images")
+        )
 
         if request.files.get("image") and request.files["image"].filename and not new_image:
-            flash("Допустимые форматы изображения: PNG, JPG, GIF, WEBP.", "error")
+            flash("Допустимые форматы обложки: PNG, JPG, GIF, WEBP.", "error")
             return render_template("edit_post.html", post=post, **post_form_context(post))
 
         if remove_image:
@@ -1863,6 +1945,9 @@ def edit_post(post_id):
             set_post_tags(post_id, parse_tags_input(tags_raw))
             if not is_private:
                 db.execute("DELETE FROM post_access WHERE post_id = ?", (post_id,))
+            new_inline_images = set(extract_inline_images(content))
+            for filename in old_inline_images - new_inline_images:
+                delete_file(filename)
             db.commit()
             if is_scheduled:
                 flash(
@@ -1913,6 +1998,7 @@ def delete_post(post_id):
         return redirect(url_for("view_post", post_id=post_id))
 
     delete_file(post["image"])
+    delete_inline_images_from_content(post["content"])
     db.execute("DELETE FROM post_access WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM post_tags WHERE post_id = ?", (post_id,))
     db.execute("DELETE FROM post_likes WHERE post_id = ?", (post_id,))

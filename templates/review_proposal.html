@@ -33,11 +33,11 @@
     </header>
 
     {% if proposal.image %}
-        <img src="{{ media_url(proposal.image) }}" alt="" class="post-image">
+        <img src="{{ media_url(proposal.image) }}" alt="" class="post-cover-image">
     {% endif %}
 
     <div class="post-full-content">
-        {{ proposal.content | linkify }}
+        {{ proposal.content | render_post_content }}
     </div>
 
     {% if proposal.status == 'pending' %}
