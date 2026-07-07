@@ -11,33 +11,12 @@
     </div>
     <div class="profile-info">
         <h1>
-            <span class="user-name-with-level">
-                {{ profile_user.username }}
-                {% with xp=profile_user.xp|default(0, true), username=profile_user.username, is_admin=profile_user.is_admin, icon_only=true %}
-                    {% include '_user_level.html' %}
-                {% endwith %}
-            </span>
+            <span class="user-name-with-level">{{ profile_user.username }}</span>
             {% if profile_user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
             {% with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
                 {% include '_online_status.html' %}
             {% endwith %}
         </h1>
-        <div class="profile-level-block">
-            {% with xp=profile_user.xp|default(0, true), username=profile_user.username, is_admin=profile_user.is_admin, hide_icon=true %}
-                {% include '_user_level.html' %}
-            {% endwith %}
-            <div class="profile-xp-progress">
-                <div class="profile-xp-bar" style="width: {{ level_info.progress }}%"></div>
-            </div>
-            <p class="profile-xp-meta">
-                {{ level_info.xp }} XP
-                {% if level_info.next_xp %}
-                    · до {{ level_info.next_xp }} XP
-                {% else %}
-                    · максимальный уровень
-                {% endif %}
-            </p>
-        </div>
         <p class="profile-meta">
             На сайте с {{ profile_user.created_at[:10] }} · {{ post_count }}
             {% if post_count == 1 %}пост{% elif post_count < 5 %}поста{% else %}постов{% endif %}

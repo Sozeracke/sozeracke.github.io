@@ -1312,18 +1312,12 @@ def user_profile(username):
     posts_query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
     posts_raw = db.execute(posts_query, posts_params).fetchall()
     posts = attach_tags_to_posts(posts_raw)
-    level_info = get_user_level_info(
-        profile_user["xp"] or 0,
-        username=profile_user["username"],
-        is_admin=bool(profile_user["is_admin"]),
-    )
 
     return render_template(
         "profile.html",
         profile_user=profile_user,
         posts=posts,
         post_count=len(posts),
-        level_info=level_info,
     )
 
 
