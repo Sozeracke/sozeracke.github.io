@@ -13,7 +13,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=21">
     <script src="{{ url_for('static', filename='theme.js') }}?v=16" defer></script>
 </head>
 <body>
@@ -26,12 +26,6 @@
                     <span class="logo-byline">{{ site_byline }}</span>
                 </span>
             </a>
-
-            <button type="button" class="sidebar-toggle" data-sidebar-toggle
-                    aria-expanded="false" aria-controls="catalog-sidebar"
-                    aria-label="Меню каталога">
-                <span class="sidebar-toggle-icon"></span>
-            </button>
 
             <button type="button" class="theme-toggle" data-theme-toggle
                     aria-pressed="false" aria-label="Переключить тему">

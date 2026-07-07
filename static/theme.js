@@ -39,15 +39,6 @@
         }
     });
 
-    var sidebarToggle = document.querySelector("[data-sidebar-toggle]");
-    var sidebar = document.querySelector(".catalog-sidebar");
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener("click", function () {
-            var open = sidebar.classList.toggle("catalog-sidebar--open");
-            sidebarToggle.setAttribute("aria-expanded", open ? "true" : "false");
-        });
-    }
-
     document.querySelectorAll(".like-form").forEach(function (form) {
         form.addEventListener("submit", function (event) {
             event.preventDefault();

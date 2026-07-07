@@ -2131,9 +2131,8 @@ body {
     text-decoration: underline;
 }
 
-/* Theme toggle & sidebar menu */
-.theme-toggle,
-.sidebar-toggle {
+/* Theme toggle */
+.theme-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2148,8 +2147,7 @@ body {
     flex-shrink: 0;
 }
 
-.theme-toggle:hover,
-.sidebar-toggle:hover {
+.theme-toggle:hover {
     background: var(--surface-hover);
     color: var(--text);
     border-color: rgba(108, 99, 255, 0.45);
@@ -2158,58 +2156,6 @@ body {
 .theme-toggle-icon {
     font-size: 1.1rem;
     line-height: 1;
-}
-
-.sidebar-toggle {
-    display: none;
-}
-
-body:has(.catalog-layout) .sidebar-toggle {
-    display: inline-flex;
-}
-
-.sidebar-toggle-icon {
-    display: block;
-    width: 18px;
-    height: 2px;
-    background: currentColor;
-    border-radius: 2px;
-    position: relative;
-    transition: background 0.2s;
-}
-
-.sidebar-toggle-icon::before,
-.sidebar-toggle-icon::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    width: 18px;
-    height: 2px;
-    background: currentColor;
-    border-radius: 2px;
-    transition: transform 0.3s ease, top 0.3s ease;
-}
-
-.sidebar-toggle-icon::before {
-    top: -6px;
-}
-
-.sidebar-toggle-icon::after {
-    top: 6px;
-}
-
-.sidebar-toggle[aria-expanded="true"] .sidebar-toggle-icon {
-    background: transparent;
-}
-
-.sidebar-toggle[aria-expanded="true"] .sidebar-toggle-icon::before {
-    top: 0;
-    transform: rotate(45deg);
-}
-
-.sidebar-toggle[aria-expanded="true"] .sidebar-toggle-icon::after {
-    top: 0;
-    transform: rotate(-45deg);
 }
 
 /* User levels */
@@ -2423,19 +2369,9 @@ body:has(.catalog-layout) .sidebar-toggle {
     .catalog-sidebar {
         position: static;
         height: auto;
-        max-height: 0;
-        overflow: hidden;
-        padding: 0 16px;
-        opacity: 0;
-        border-right: none;
-        border-bottom: none;
-        transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease;
-    }
-
-    .catalog-sidebar.catalog-sidebar--open {
-        max-height: 3000px;
-        opacity: 1;
+        overflow: visible;
         padding: 16px;
+        border-right: none;
         border-bottom: 1px solid var(--border);
     }
 
