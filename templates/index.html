@@ -27,6 +27,7 @@
         {% if posts %}
             <div class="posts-grid">
                 {% for post in posts %}
+                    {% set card_index = loop.index0 %}
                     {% include "_post_card.html" %}
                 {% endfor %}
             </div>

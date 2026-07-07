@@ -62,7 +62,7 @@
     {% if posts %}
         <div class="posts-grid">
             {% for post in posts %}
-                {% with show_author_level=false, show_online=false %}
+                {% with show_author_level=false, show_online=false, card_index=loop.index0 %}
                     {% include "_post_card.html" %}
                 {% endwith %}
             {% endfor %}
