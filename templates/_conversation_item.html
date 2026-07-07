@@ -1,19 +1,21 @@
+{% from '_avatar.html' import user_avatar with context %}
 <div class="conversation-row {% if contact.is_pinned %}is-pinned{% endif %}">
     <a href="{{ url_for('chat_with_user', username=contact.username) }}"
        class="conversation-item {% if active_username and contact.username == active_username %}active{% endif %} {% if contact.unread_count %}unread{% endif %}"
        data-username="{{ contact.username|lower }}">
         <div class="conversation-avatar">
-            {% if contact.avatar %}
-                <img src="{{ media_url(contact.avatar) }}" alt="">
-            {% else %}
-                <span>{{ contact.username[0]|upper }}</span>
-            {% endif %}
+            {{ user_avatar(contact.username, contact.avatar, 'sm') }}
             <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
                   title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
         </div>
         <div class="conversation-info">
             <div class="conversation-top">
-                <strong>{{ contact.username }}</strong>
+                <strong class="user-name-with-level">
+                    {{ contact.username }}
+                    {% with xp=contact.xp|default(0, true), username=contact.username, is_admin=contact.is_admin, icon_only=true %}
+                        {% include '_user_level.html' %}
+                    {% endwith %}
+                </strong>
                 {% if contact.is_pinned %}
                     <span class="conversation-pin-label" title="Закреплён">📌</span>
                 {% endif %}

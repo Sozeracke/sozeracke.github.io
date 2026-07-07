@@ -12,13 +12,8 @@
             <div class="form-group">
                 <label>Текущий аватар</label>
                 <div class="avatar-preview">
-                    {% if g.user.avatar %}
-                        <img src="{{ media_url(g.user.avatar) }}" alt="">
-                    {% else %}
-                        <div class="profile-avatar profile-avatar-placeholder profile-avatar-sm">
-                            {{ g.user.username[0]|upper }}
-                        </div>
-                    {% endif %}
+                    {% from '_avatar.html' import user_avatar with context %}
+                    {{ user_avatar(g.user.username, g.user.avatar, 'preview') }}
                 </div>
             </div>
             <div class="form-group">

@@ -26,15 +26,17 @@
     <div class="chat-main">
         <div class="chat-header">
             <div class="conversation-avatar conversation-avatar-sm">
-                {% if partner.avatar %}
-                    <img src="{{ media_url(partner.avatar) }}" alt="">
-                {% else %}
-                    <span>{{ partner.username[0]|upper }}</span>
-                {% endif %}
+                {% from '_avatar.html' import user_avatar with context %}
+                {{ user_avatar(partner.username, partner.avatar, 'sm') }}
             </div>
             <div>
                 <div class="chat-header-name">
-                    <strong>{{ partner.username }}</strong>
+                    <strong class="user-name-with-level">
+                        {{ partner.username }}
+                        {% with xp=partner.xp|default(0, true), username=partner.username, is_admin=partner.is_admin, icon_only=true %}
+                            {% include '_user_level.html' %}
+                        {% endwith %}
+                    </strong>
                     {% with is_admin=partner.is_admin %}
                         {% include '_admin_badge.html' %}
                     {% endwith %}

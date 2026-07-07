@@ -13,8 +13,8 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=15">
-    <script src="{{ url_for('static', filename='theme.js') }}?v=15" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=16">
+    <script src="{{ url_for('static', filename='theme.js') }}?v=16" defer></script>
 </head>
 <body>
     <nav class="navbar">
@@ -55,16 +55,16 @@
 
                 <div class="nav-account">
                     <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
-                        {% if g.user.avatar %}
-                            <img src="{{ media_url(g.user.avatar) }}"
-                                 alt="" class="nav-avatar">
-                        {% endif %}
+                        {% from '_avatar.html' import user_avatar with context %}
+                        {{ user_avatar(g.user.username, g.user.avatar, 'xs') }}
                         <span class="nav-user-info">
                             <span class="nav-user-identity">
-                                <span class="nav-username">{{ g.user.username }}</span>
-                                {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin %}
-                                    {% include '_user_level.html' %}
-                                {% endwith %}
+                                <span class="nav-user-name-row">
+                                    <span class="nav-username">{{ g.user.username }}</span>
+                                    {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
+                                        {% include '_user_level.html' %}
+                                    {% endwith %}
+                                </span>
                                 {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
                                     {% include '_online_status.html' %}
                                 {% endwith %}

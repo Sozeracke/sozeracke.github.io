@@ -171,6 +171,16 @@ def tag_display(name):
 app.jinja_env.filters["tag_display"] = tag_display
 
 
+def avatar_letter(username):
+    if not username:
+        return "?"
+    name = str(username).strip()
+    return name[0].upper() if name else "?"
+
+
+app.jinja_env.filters["avatar_letter"] = avatar_letter
+
+
 def is_user_online(last_seen, user_id=None):
     if user_id and g.user and g.user["id"] == user_id:
         return True
@@ -663,7 +673,7 @@ def get_message_contacts(user_id, search="", admins_only=False, admin_pins=False
     """ if admin_pins else ", 0 AS is_pinned"
 
     query = f"""
-        SELECT u.id, u.username, u.avatar, u.last_seen, u.is_admin,
+        SELECT u.id, u.username, u.avatar, u.last_seen, u.is_admin, u.xp,
                conv.id AS conv_id,
                (SELECT content FROM messages WHERE messages.conversation_id = conv.id
                 ORDER BY messages.created_at DESC LIMIT 1) AS last_message,
@@ -1799,7 +1809,7 @@ def chat_with_user(username):
 def _chat_with_user(username):
     db = get_db()
     partner = db.execute(
-        "SELECT id, username, avatar, last_seen, is_admin FROM users WHERE username = ?",
+        "SELECT id, username, avatar, last_seen, is_admin, xp FROM users WHERE username = ?",
         (username,),
     ).fetchone()
 

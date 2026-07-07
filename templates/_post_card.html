@@ -13,12 +13,14 @@
     <div class="post-card-body">
         <div class="post-card-header">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                {{ post.username }}
-                {% if show_author_level %}
-                    {% with xp=post.author_xp|default(0, true), username=post.username %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                {% endif %}
+                <span class="user-name-with-level">
+                    {{ post.username }}
+                    {% if show_author_level %}
+                        {% with xp=post.author_xp|default(0, true), username=post.username, icon_only=true %}
+                            {% include '_user_level.html' %}
+                        {% endwith %}
+                    {% endif %}
+                </span>
                 {% if show_online %}
                     {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
                         {% include '_online_status.html' %}

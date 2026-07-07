@@ -1,0 +1,9 @@
+{% macro user_avatar(username, avatar=None, size='sm', extra_class='') %}
+    {% if avatar %}
+        <img src="{{ media_url(avatar) }}" alt="" class="avatar avatar-photo avatar-{{ size }} {{ extra_class }}">
+    {% else %}
+        <div class="avatar avatar-letter avatar-{{ size }} {{ extra_class }}" aria-hidden="true">
+            <span>{{ username|avatar_letter }}</span>
+        </div>
+    {% endif %}
+{% endmacro %}

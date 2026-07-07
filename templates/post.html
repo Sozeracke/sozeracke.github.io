@@ -22,10 +22,12 @@
         <h1>{{ post.title }}</h1>
         <div class="post-meta">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                {{ post.username }}
-                {% with xp=post.author_xp|default(0, true), username=post.username %}
-                    {% include '_user_level.html' %}
-                {% endwith %}
+                <span class="user-name-with-level">
+                    {{ post.username }}
+                    {% with xp=post.author_xp|default(0, true), username=post.username, icon_only=true %}
+                        {% include '_user_level.html' %}
+                    {% endwith %}
+                </span>
             </a>
             <span class="post-separator">·</span>
             <time class="post-date">{{ post.created_at[:10] }}</time>

@@ -1,5 +1,9 @@
 {% set level = get_user_level_info(xp|default(0, true), username=username, is_admin=is_admin|default(false)) %}
+{% if icon_only %}
+<span class="user-level-emoji" title="{{ level.name }} · {{ level.xp }} XP">{{ level.icon }}</span>
+{% else %}
 <span class="user-level user-level-{{ level.name|lower }}" title="{{ level.xp }} XP">
-    <span class="user-level-icon">{{ level.icon }}</span>
+    {% if not hide_icon %}<span class="user-level-icon">{{ level.icon }}</span>{% endif %}
     <span class="user-level-name">{{ level.name }}</span>
 </span>
+{% endif %}
