@@ -270,6 +270,10 @@ def migrate_db():
         db.execute(
             "ALTER TABLE posts ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0"
         )
+    if "is_pinned" not in post_cols:
+        db.execute(
+            "ALTER TABLE posts ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0"
+        )
 
     cat_cols = table_columns(db, "categories")
     if "created_by" not in cat_cols:
@@ -562,6 +566,10 @@ def is_post_private(post):
     return bool(post.get("is_private"))
 
 
+def is_post_pinned(post):
+    return bool(post.get("is_pinned"))
+
+
 def user_has_post_access(post_id, user_id):
     if not user_id:
         return False
@@ -829,7 +837,7 @@ def fetch_posts(category_slug=None, tag_slug=None, search=None):
     engagement_sql, engagement_params = post_engagement_sql()
     query = f"""
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
-               posts.published_at, posts.is_private,
+               posts.published_at, posts.is_private, posts.is_pinned,
                users.username, users.id AS author_id, users.last_seen AS author_last_seen,
                users.xp AS author_xp,
                categories.name AS category_name, categories.slug AS category_slug,
@@ -853,7 +861,7 @@ def fetch_posts(category_slug=None, tag_slug=None, search=None):
         params.extend([f"%{search}%", f"%{search}%"])
 
     query += " WHERE " + " AND ".join(conditions)
-    query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
+    query += " ORDER BY posts.is_pinned DESC, COALESCE(posts.published_at, posts.created_at) DESC"
     return db.execute(query, params).fetchall()
 
 
@@ -1021,6 +1029,7 @@ def inject_globals():
         "is_post_scheduled": is_post_scheduled,
         "is_post_published": is_post_published,
         "is_post_private": is_post_private,
+        "is_post_pinned": is_post_pinned,
         "can_manage_post_access": can_manage_post_access,
         "format_datetime_local": format_datetime_local,
         "get_user_level_info": get_user_level_info,
@@ -1061,6 +1070,9 @@ def render_posts_page(category_slug=None, tag_slug=None, search=None):
             page_title = f"Тег: #{tag_display(active_tag['name'])}"
             page_subtitle = f"{len(posts)} постов с этим тегом"
 
+    show_welcome = not search and not category_slug and not tag_slug
+    featured_post = posts[0] if show_welcome and posts else None
+
     return render_template(
         "index.html",
         posts=posts,
@@ -1071,6 +1083,8 @@ def render_posts_page(category_slug=None, tag_slug=None, search=None):
         active_category=active_category,
         active_tag=active_tag,
         search_query=search_query,
+        show_welcome=show_welcome,
+        featured_post=featured_post,
     )
 
 
@@ -1734,7 +1748,7 @@ def view_post(post_id):
         f"""
         SELECT posts.id, posts.title, posts.content, posts.image,
                posts.created_at, posts.updated_at, posts.category_id, posts.published_at,
-               posts.is_private, posts.user_id,
+               posts.is_private, posts.is_pinned, posts.user_id,
                users.username, users.id AS author_id, users.xp AS author_xp,
                categories.name AS category_name, categories.slug AS category_slug,
                {engagement_sql}
@@ -1869,6 +1883,25 @@ def edit_post(post_id):
             flash(error, "error")
 
     return render_template("edit_post.html", post=post, **post_form_context(post))
+
+
+@app.route("/admin/post/<int:post_id>/pin", methods=["POST"])
+@admin_required
+def toggle_post_pin(post_id):
+    db = get_db()
+    post = db.execute(
+        "SELECT id, is_pinned FROM posts WHERE id = ?", (post_id,)
+    ).fetchone()
+
+    if not post:
+        flash("Пост не найден.", "error")
+        return redirect(url_for("admin_panel"))
+
+    pinned = 0 if is_post_pinned(post) else 1
+    db.execute("UPDATE posts SET is_pinned = ? WHERE id = ?", (pinned, post_id))
+    db.commit()
+    flash("Пост закреплён." if pinned else "Закрепление снято.", "info")
+    return redirect(url_for("admin_panel"))
 
 
 @app.route("/post/<int:post_id>/delete", methods=["POST"])
@@ -2331,13 +2364,14 @@ def admin_panel():
     db = get_db()
     posts = db.execute("""
         SELECT posts.id, posts.title, posts.created_at, posts.published_at, posts.is_private,
+               posts.is_pinned,
                users.username, users.id AS author_id,
                categories.name AS category_name,
                (SELECT COUNT(*) FROM post_access WHERE post_access.post_id = posts.id) AS access_count
         FROM posts
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
-        ORDER BY COALESCE(posts.published_at, posts.created_at) DESC
+        ORDER BY posts.is_pinned DESC, COALESCE(posts.published_at, posts.created_at) DESC
     """).fetchall()
 
     users = db.execute("""

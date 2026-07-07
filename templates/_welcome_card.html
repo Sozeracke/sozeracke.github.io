@@ -1,0 +1,88 @@
+<section class="welcome-card" id="welcome-card">
+    <button type="button" class="welcome-close" data-welcome-close aria-label="Закрыть">×</button>
+
+    <header class="welcome-header">
+        <h2 class="welcome-title">Добро пожаловать на {{ site_name }}</h2>
+        <p class="welcome-subtitle">Ваш путь к приватным знаниям начинается здесь</p>
+    </header>
+
+    {% if g.user %}
+        <div class="welcome-user">
+            {% from '_avatar.html' import user_avatar with context %}
+            <div class="welcome-user-avatar">
+                {{ user_avatar(g.user.username, g.user.avatar, 'md', '', g.user.id) }}
+            </div>
+            <div class="welcome-user-info">
+                <div class="welcome-user-name">
+                    <span>{{ g.user.username }}</span>
+                    {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
+                        {% include '_user_level.html' %}
+                    {% endwith %}
+                    {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                        {% include '_online_status.html' %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <p class="welcome-text">
+        <span class="welcome-text-mark" aria-hidden="true">›</span>
+        Исследуйте гайды, участвуйте в обсуждениях и делитесь опытом в нашем приватном сообществе.
+    </p>
+
+    <div class="welcome-actions">
+        <a href="#hero-search" class="welcome-action-btn">
+            <span class="welcome-action-icon" aria-hidden="true">🔍</span>
+            <span>Найти ответы</span>
+        </a>
+        {% if g.user %}
+            <a href="{{ url_for('messages_inbox') }}" class="welcome-action-btn">
+                <span class="welcome-action-icon" aria-hidden="true">💬</span>
+                <span>Присоединиться к беседе</span>
+            </a>
+            <a href="{{ url_for('edit_profile') }}" class="welcome-action-btn">
+                <span class="welcome-action-icon" aria-hidden="true">⚙️</span>
+                <span>Настроить профиль</span>
+            </a>
+        {% else %}
+            <a href="{{ url_for('register') }}" class="welcome-action-btn">
+                <span class="welcome-action-icon" aria-hidden="true">💬</span>
+                <span>Присоединиться к беседе</span>
+            </a>
+            <a href="{{ url_for('login') }}" class="welcome-action-btn">
+                <span class="welcome-action-icon" aria-hidden="true">⚙️</span>
+                <span>Войти в аккаунт</span>
+            </a>
+        {% endif %}
+    </div>
+
+    {% if featured_post %}
+        <a href="{{ url_for('view_post', post_id=featured_post.id) }}" class="welcome-post-preview">
+            <div class="welcome-post-author">
+                {% from '_avatar.html' import user_avatar with context %}
+                {{ user_avatar(featured_post.username, none, 'xs', '', featured_post.author_id) }}
+                <span class="welcome-post-name">
+                    {{ featured_post.username }}
+                    {% with xp=featured_post.author_xp|default(0, true), username=featured_post.username, icon_only=true %}
+                        {% include '_user_level.html' %}
+                    {% endwith %}
+                    {% with last_seen=featured_post.author_last_seen, check_user_id=featured_post.author_id, compact=true %}
+                        {% include '_online_status.html' %}
+                    {% endwith %}
+                </span>
+            </div>
+            <div class="welcome-post-body">
+                <span class="welcome-post-title">{{ featured_post.title }}</span>
+                <span class="welcome-post-date">{{ (featured_post.published_at or featured_post.created_at)[:10] }}</span>
+            </div>
+            {% if is_post_private(featured_post) %}
+                <span class="welcome-post-badge">PRIVATE</span>
+            {% endif %}
+        </a>
+    {% endif %}
+
+    <a href="#posts-section" class="btn btn-primary btn-full welcome-cta" data-welcome-close-soft>
+        Перейти к обсуждениям
+    </a>
+</section>

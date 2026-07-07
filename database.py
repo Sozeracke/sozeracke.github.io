@@ -200,7 +200,8 @@ def postgres_schema():
             updated_at TEXT,
             category_id INTEGER REFERENCES categories (id),
             published_at TEXT,
-            is_private INTEGER NOT NULL DEFAULT 0
+            is_private INTEGER NOT NULL DEFAULT 0,
+            is_pinned INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS post_access (

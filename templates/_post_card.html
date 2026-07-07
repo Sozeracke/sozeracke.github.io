@@ -1,5 +1,5 @@
 {% macro post_card(post, card_index=0, show_author_level=true, show_online=true) %}
-<article class="post-card" style="--card-delay: {{ card_index * 0.06 }}s">
+<article class="post-card{% if is_post_pinned(post) %} post-card--pinned{% endif %}" style="--card-delay: {{ card_index * 0.06 }}s">
     <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card-cover">
         {% if post.image %}
             <img src="{{ media_url(post.image) }}"
@@ -28,6 +28,9 @@
                 {% endif %}
             </a>
             <div class="post-card-meta">
+                {% if is_post_pinned(post) %}
+                    <span class="badge badge-pinned">📌 закреплён</span>
+                {% endif %}
                 <time class="post-date">{{ (post.published_at or post.created_at)[:10] }}</time>
                 {% if is_post_private(post) %}
                     <span class="badge badge-private">приватный</span>

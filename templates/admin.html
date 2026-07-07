@@ -65,6 +65,9 @@
                                 <a href="{{ url_for('user_profile', username=post.username) }}">{{ post.username }}</a>
                             </td>
                             <td>
+                                {% if is_post_pinned(post) %}
+                                    <span class="badge badge-pinned">закреплён</span>
+                                {% endif %}
                                 {% if is_post_private(post) %}
                                     <span class="badge badge-private">приватный</span>
                                     {% if post.access_count %}
@@ -81,6 +84,11 @@
                             <td>{{ (post.published_at or post.created_at)[:10] }}</td>
                             <td class="admin-actions">
                                 <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-ghost btn-sm">Открыть</a>
+                                <form method="POST" action="{{ url_for('toggle_post_pin', post_id=post.id) }}">
+                                    <button type="submit" class="btn btn-ghost btn-sm">
+                                        {% if is_post_pinned(post) %}Открепить{% else %}Закрепить{% endif %}
+                                    </button>
+                                </form>
                                 {% if is_post_private(post) %}
                                     <a href="{{ url_for('post_access', post_id=post.id) }}" class="btn btn-ghost btn-sm">Доступ</a>
                                 {% endif %}

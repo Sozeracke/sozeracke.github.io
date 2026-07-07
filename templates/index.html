@@ -10,13 +10,21 @@
 
     <div class="catalog-center">
     <div class="main-content">
-        <section class="hero hero-compact">
-            <h1>{{ page_title }}</h1>
-            {% if page_subtitle %}
-                <p>{{ page_subtitle }}</p>
-            {% endif %}
-            {% if active_category or active_tag %}
-                <a href="{{ url_for('index') }}" class="filter-reset">← Все посты</a>
+        {% if show_welcome %}
+            {% include "_welcome_card.html" %}
+        {% endif %}
+
+        <section class="hero hero-compact" id="hero-search">
+            {% if show_welcome %}
+                <h2 class="section-title">Последние посты</h2>
+            {% else %}
+                <h1>{{ page_title }}</h1>
+                {% if page_subtitle %}
+                    <p>{{ page_subtitle }}</p>
+                {% endif %}
+                {% if active_category or active_tag %}
+                    <a href="{{ url_for('index') }}" class="filter-reset">← Все посты</a>
+                {% endif %}
             {% endif %}
             <form action="{{ url_for('search') }}" method="GET" class="hero-search">
                 <input type="search" name="q" value="{{ search_query or '' }}"
@@ -25,6 +33,7 @@
             </form>
         </section>
 
+        <section id="posts-section">
         {% if posts %}
             <div class="posts-grid">
                 {% for post in posts %}
@@ -51,6 +60,7 @@
         {% endif %}
             </div>
         {% endif %}
+        </section>
     </div>
     </div>
 </div>

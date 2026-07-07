@@ -20,6 +20,9 @@
             </div>
         {% endif %}
         <h1>{{ post.title }}</h1>
+        {% if is_post_pinned(post) %}
+            <span class="badge badge-pinned post-pinned-badge">📌 Закреплён</span>
+        {% endif %}
         <div class="post-meta">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
                 <span class="user-name-with-level">
