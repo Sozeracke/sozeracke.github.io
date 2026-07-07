@@ -812,7 +812,7 @@ def fetch_posts(category_slug=None, tag_slug=None, search=None):
         JOIN users ON posts.user_id = users.id
         LEFT JOIN categories ON posts.category_id = categories.id
     """
-    params = [cutoff, *access_params, *engagement_params]
+    params = [*engagement_params, cutoff, *access_params]
     conditions = [post_is_public_sql("posts"), access_sql]
 
     if category_slug:
@@ -1248,7 +1248,7 @@ def user_profile(username):
         LEFT JOIN categories ON posts.category_id = categories.id
         WHERE posts.user_id = ?
     """
-    posts_params = [profile_user["id"], *engagement_params]
+    posts_params = [*engagement_params, profile_user["id"]]
     viewer_is_owner = g.user and g.user["id"] == profile_user["id"]
     if viewer_is_owner or is_admin():
         pass
@@ -1437,7 +1437,7 @@ def view_post(post_id):
         LEFT JOIN categories ON posts.category_id = categories.id
         WHERE posts.id = ?
         """,
-        (post_id, *engagement_params),
+        (*engagement_params, post_id),
     ).fetchone()
 
     if not post:
