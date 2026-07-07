@@ -1000,12 +1000,10 @@ body {
 }
 
 .avatar-letter {
-    background-position: center;
+    position: relative;
+    background-position: center center;
     background-size: cover;
     background-repeat: no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .avatar-letter.avatar-bg-default {
@@ -1017,10 +1015,16 @@ body {
 }
 
 .avatar-letter span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
     color: #fff;
     font-weight: 800;
     text-transform: uppercase;
     line-height: 1;
+    text-align: center;
+    transform: translateY(3%);
     text-shadow:
         -1.5px -1.5px 0 #111,
         1.5px -1.5px 0 #111,
