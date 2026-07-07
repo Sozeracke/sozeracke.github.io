@@ -62,7 +62,7 @@
                         <span class="nav-user-info">
                             <span class="nav-user-identity">
                                 <span class="nav-username">{{ g.user.username }}</span>
-                                {% with xp=g.user.xp|default(0), username=g.user.username, is_admin=g.user.is_admin %}
+                                {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin %}
                                     {% include '_user_level.html' %}
                                 {% endwith %}
                                 {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}

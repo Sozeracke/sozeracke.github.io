@@ -455,6 +455,10 @@ def award_xp(user_id, amount):
 
 
 def get_user_level_info(xp, username=None, is_admin=False):
+    try:
+        xp = int(xp or 0)
+    except (TypeError, ValueError):
+        xp = 0
     if username == SITE_OWNER:
         top = USER_LEVELS[-1]
         return {

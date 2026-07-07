@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_post_card.html" import post_card with context %}
 
 {% block title %}{{ profile_user.username }} — {{ site_name }}{% endblock %}
 
@@ -23,7 +24,7 @@
             {% endwith %}
         </h1>
         <div class="profile-level-block">
-            {% with xp=profile_user.xp|default(0), username=profile_user.username, is_admin=profile_user.is_admin %}
+            {% with xp=profile_user.xp|default(0, true), username=profile_user.username, is_admin=profile_user.is_admin %}
                 {% include '_user_level.html' %}
             {% endwith %}
             <div class="profile-xp-progress">
@@ -62,9 +63,7 @@
     {% if posts %}
         <div class="posts-grid">
             {% for post in posts %}
-                {% with show_author_level=false, show_online=false, card_index=loop.index0 %}
-                    {% include "_post_card.html" %}
-                {% endwith %}
+                {{ post_card(post, loop.index0, false, false) }}
             {% endfor %}
         </div>
     {% else %}

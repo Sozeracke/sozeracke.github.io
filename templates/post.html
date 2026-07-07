@@ -23,7 +23,7 @@
         <div class="post-meta">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
                 {{ post.username }}
-                {% with xp=post.author_xp|default(0), username=post.username %}
+                {% with xp=post.author_xp|default(0, true), username=post.username %}
                     {% include '_user_level.html' %}
                 {% endwith %}
             </a>
