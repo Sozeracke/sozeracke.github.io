@@ -4,18 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon-192.png') }}">
-    <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='favicon-64.png') }}">
-    <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='favicon-48.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=12">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=13">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-inner">
             <a href="{{ url_for('index') }}" class="logo">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="logo-image">
+                <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" class="logo-image">
                 <span class="logo-text">
                     <span class="logo-title">{{ site_name }}</span>
                     <span class="logo-byline">{{ site_byline }}</span>
@@ -84,11 +79,8 @@
     <footer class="footer">
         <div class="container footer-inner">
             <div class="footer-brand">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="footer-logo">
-                <div class="footer-brand-text">
-                    <span class="footer-title">{{ site_name }}</span>
-                    <span class="footer-byline">{{ site_byline }}</span>
-                </div>
+                <span class="footer-title">{{ site_name }}</span>
+                <span class="footer-byline">{{ site_byline }}</span>
             </div>
             <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
             <span class="footer-separator">·</span>
