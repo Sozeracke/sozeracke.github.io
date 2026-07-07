@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=13">
+    <link rel="icon" href="{{ url_for('static', filename='site-logo.png') }}" type="image/png">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=14">
 </head>
 <body>
     <nav class="navbar">
@@ -79,8 +80,11 @@
     <footer class="footer">
         <div class="container footer-inner">
             <div class="footer-brand">
-                <span class="footer-title">{{ site_name }}</span>
-                <span class="footer-byline">{{ site_byline }}</span>
+                <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" class="footer-logo">
+                <div class="footer-brand-text">
+                    <span class="footer-title">{{ site_name }}</span>
+                    <span class="footer-byline">{{ site_byline }}</span>
+                </div>
             </div>
             <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
             <span class="footer-separator">·</span>
