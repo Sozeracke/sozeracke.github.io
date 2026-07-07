@@ -74,7 +74,7 @@
             </div>
             <div class="welcome-post-body">
                 <span class="welcome-post-title">{{ featured_post.title }}</span>
-                <span class="welcome-post-date">{{ (featured_post.published_at or featured_post.created_at)[:10] }}</span>
+                <span class="welcome-post-date">{{ (featured_post.published_at or featured_post.created_at) | format_date_ru }}</span>
             </div>
             {% if is_post_private(featured_post) %}
                 <span class="welcome-post-badge">PRIVATE</span>

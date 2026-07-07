@@ -1,0 +1,11 @@
+{% from "_post_card.html" import post_card with context %}
+{% if related_posts %}
+<section class="related-posts">
+    <h2 class="related-posts-title">Похожие посты</h2>
+    <div class="posts-grid posts-grid-compact">
+        {% for related in related_posts %}
+            {{ post_card(related, loop.index0, false, false) }}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}

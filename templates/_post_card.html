@@ -1,8 +1,9 @@
 {% macro post_card(post, card_index=0, show_author_level=true, show_online=true) %}
 <article class="post-card{% if is_post_pinned(post) %} post-card--pinned{% endif %}" style="--card-delay: {{ card_index * 0.06 }}s">
     <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card-cover">
-        {% if post.image %}
-            <img src="{{ media_url(post.image) }}"
+        {% set cover = post_cover(post) %}
+        {% if cover %}
+            <img src="{{ media_url(cover) }}"
                  alt="" class="post-card-image" loading="lazy">
         {% else %}
             <div class="post-card-cover-placeholder" aria-hidden="true">
@@ -13,14 +14,7 @@
     <div class="post-card-body">
         <div class="post-card-header">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                <span class="user-name-with-level">
-                    {{ post.username }}
-                    {% if show_author_level %}
-                        {% with xp=post.author_xp|default(0, true), username=post.username, icon_only=true %}
-                            {% include '_user_level.html' %}
-                        {% endwith %}
-                    {% endif %}
-                </span>
+                <span class="user-name-with-level">{{ post.username }}</span>
                 {% if show_online %}
                     {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
                         {% include '_online_status.html' %}
@@ -31,7 +25,8 @@
                 {% if is_post_pinned(post) %}
                     <span class="badge badge-pinned">📌 закреплён</span>
                 {% endif %}
-                <time class="post-date">{{ (post.published_at or post.created_at)[:10] }}</time>
+                <time class="post-date">{{ (post.published_at or post.created_at) | format_date_ru }}</time>
+                <span class="post-reading-time">{{ post.content | reading_time }} мин</span>
                 {% if is_post_private(post) %}
                     <span class="badge badge-private">приватный</span>
                 {% elif is_post_scheduled(post) %}

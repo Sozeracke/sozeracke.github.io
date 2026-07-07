@@ -13,8 +13,9 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=26">
-    <script src="{{ url_for('static', filename='theme.js') }}?v=17" defer></script>
+    {% block head %}{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=27">
+    <script src="{{ url_for('static', filename='theme.js') }}?v=18" defer></script>
 </head>
 <body>
     <nav class="navbar">
@@ -61,9 +62,6 @@
                             <span class="nav-user-identity">
                                 <span class="nav-user-name-row">
                                     <span class="nav-username">{{ g.user.username }}</span>
-                                    {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
-                                        {% include '_user_level.html' %}
-                                    {% endwith %}
                                 </span>
                                 {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
                                     {% include '_online_status.html' %}
@@ -89,9 +87,12 @@
     <main class="{% block main_class %}container{% endblock %}">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flash-messages">
+                <div class="flash-messages" id="flash-messages">
                     {% for category, message in messages %}
-                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                        <div class="flash flash-{{ category }}" data-flash data-flash-type="{{ category }}" role="status">
+                            <span class="flash-text">{{ message }}</span>
+                            <button type="button" class="flash-close" data-flash-close aria-label="Закрыть">×</button>
+                        </div>
                     {% endfor %}
                 </div>
             {% endif %}

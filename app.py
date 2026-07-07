@@ -218,7 +218,8 @@ def render_post_content(text):
             url = escape(media_url(part))
             chunks.append(
                 f'<figure class="post-inline-figure">'
-                f'<img src="{url}" alt="" class="post-inline-image" loading="lazy">'
+                f'<img src="{url}" alt="" class="post-inline-image lightbox-image" '
+                f'loading="lazy" tabindex="0" role="button">'
                 f"</figure>"
             )
     return Markup("".join(chunks))
@@ -231,6 +232,53 @@ def delete_inline_images_from_content(content):
 
 app.jinja_env.filters["render_post_content"] = render_post_content
 app.jinja_env.filters["post_excerpt"] = strip_inline_image_markers
+
+
+def post_cover_filename(post):
+    if post.get("image"):
+        return post["image"]
+    inline = extract_inline_images(post.get("content", ""))
+    return inline[0] if inline else None
+
+
+def parse_iso_datetime(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "")[:19])
+    except ValueError:
+        return None
+
+
+def format_date_ru(value):
+    dt = parse_iso_datetime(value)
+    if not dt:
+        return (value or "")[:10]
+    days = (datetime.now() - dt).days
+    if days == 0:
+        return "сегодня"
+    if days == 1:
+        return "вчера"
+    if days < 7:
+        return f"{days} дн. назад"
+    return dt.strftime("%d.%m.%Y")
+
+
+def reading_time(text):
+    clean = strip_inline_image_markers(text or "")
+    words = len(re.findall(r"\S+", clean))
+    return max(1, round(words / 200)) if words else 1
+
+
+def absolute_media_url(filename):
+    if not filename:
+        return ""
+    base = app.config["PUBLIC_URL"].rstrip("/")
+    return f"{base}{url_for('serve_media', filename=filename)}"
+
+
+app.jinja_env.filters["format_date_ru"] = format_date_ru
+app.jinja_env.filters["reading_time"] = reading_time
 
 
 def normalize_tag_name(name):
@@ -936,6 +984,41 @@ def fetch_posts(category_slug=None, tag_slug=None, search=None):
     return db.execute(query, params).fetchall()
 
 
+def fetch_related_posts(post, limit=3):
+    if not post.get("category_id"):
+        return []
+    db = get_db()
+    cutoff = publication_cutoff()
+    access_sql, access_params = build_post_access_filter(getattr(g, "user", None))
+    engagement_sql, engagement_params = post_engagement_sql()
+    query = f"""
+        SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
+               posts.published_at, posts.is_private, posts.is_pinned,
+               users.username, users.id AS author_id, users.last_seen AS author_last_seen,
+               users.xp AS author_xp,
+               categories.name AS category_name, categories.slug AS category_slug,
+               {engagement_sql}
+        FROM posts
+        JOIN users ON posts.user_id = users.id
+        LEFT JOIN categories ON posts.category_id = categories.id
+        WHERE posts.id != ?
+          AND posts.category_id = ?
+          AND {post_is_public_sql("posts")}
+          AND {access_sql}
+        ORDER BY posts.is_pinned DESC, COALESCE(posts.published_at, posts.created_at) DESC
+        LIMIT ?
+    """
+    params = [
+        post["id"],
+        post["category_id"],
+        *engagement_params,
+        cutoff,
+        *access_params,
+        limit,
+    ]
+    return attach_tags_to_posts(db.execute(query, params).fetchall())
+
+
 def get_unread_count(user_id):
     db = get_db()
     return db.execute("""
@@ -1096,6 +1179,8 @@ def inject_globals():
         "site_name": SITE_NAME,
         "site_byline": SITE_BYLINE,
         "media_url": media_url,
+        "post_cover": post_cover_filename,
+        "absolute_media_url": absolute_media_url,
         "db_persistent": database.IS_PERSISTENT or not IS_RENDER,
         "is_post_scheduled": is_post_scheduled,
         "is_post_published": is_post_published,
@@ -1857,6 +1942,7 @@ def view_post(post_id):
 
     post_tags = get_post_tags(post_id)
     is_scheduled_preview = not is_post_published(post)
+    related_posts = fetch_related_posts(post) if is_post_published(post) else []
 
     return render_template(
         "post.html",
@@ -1864,6 +1950,7 @@ def view_post(post_id):
         comments=comments,
         post_tags=post_tags,
         is_scheduled_preview=is_scheduled_preview,
+        related_posts=related_posts,
     )
 
 

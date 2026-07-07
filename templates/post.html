@@ -2,6 +2,19 @@
 
 {% block title %}{{ post.title }} — {{ site_name }}{% endblock %}
 
+{% block head %}
+    {% set og_image = post_cover(post) %}
+    {% set og_description = (post.content | post_excerpt)[:200] %}
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="{{ post.title }}">
+    <meta property="og:description" content="{{ og_description }}">
+    <meta property="og:url" content="{{ public_url }}{{ url_for('view_post', post_id=post.id) }}">
+    {% if og_image %}
+        <meta property="og:image" content="{{ absolute_media_url(og_image) }}">
+    {% endif %}
+    <meta name="twitter:card" content="{% if og_image %}summary_large_image{% else %}summary{% endif %}">
+{% endblock %}
+
 {% block content %}
 <article class="post-full">
     <header class="post-full-header">
@@ -25,18 +38,15 @@
         {% endif %}
         <div class="post-meta">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                <span class="user-name-with-level">
-                    {{ post.username }}
-                    {% with xp=post.author_xp|default(0, true), username=post.username, icon_only=true %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                </span>
+                <span class="user-name-with-level">{{ post.username }}</span>
             </a>
             <span class="post-separator">·</span>
-            <time class="post-date">{{ post.created_at[:10] }}</time>
+            <time class="post-date">{{ (post.published_at or post.created_at) | format_date_ru }}</time>
+            <span class="post-separator">·</span>
+            <span class="post-reading-time">{{ post.content | reading_time }} мин чтения</span>
             {% if post.updated_at and post.updated_at != post.created_at %}
                 <span class="post-separator">·</span>
-                <span class="post-edited">изменён {{ post.updated_at[:10] }}</span>
+                <span class="post-edited">изменён {{ post.updated_at | format_date_ru }}</span>
             {% endif %}
         </div>
         {% if post.category_name %}
@@ -49,7 +59,7 @@
 
     {% if post.image %}
         <img src="{{ media_url(post.image) }}"
-             alt="" class="post-cover-image">
+             alt="" class="post-cover-image lightbox-image" tabindex="0" role="button">
     {% endif %}
 
     <div class="post-full-content">
@@ -68,7 +78,7 @@
         {% else %}
             <span class="like-count-display">❤️ {{ post.like_count|default(0) }}</span>
         {% endif %}
-        <span class="comment-count-display">💬 {{ comments|length }}</span>
+        <a href="#comments-section" class="comment-count-display comment-count-link">💬 {{ comments|length }}</a>
     </div>
 
     <div class="post-bottom-actions">
@@ -90,7 +100,9 @@
         {% endif %}
     </div>
 
-    <section class="comments-section">
+    {% include "_related_posts.html" %}
+
+    <section class="comments-section" id="comments-section">
         <h2 class="comments-title">Комментарии ({{ comments|length }})</h2>
 
         {% if is_scheduled_preview %}
@@ -98,8 +110,8 @@
         {% elif g.user %}
             <form method="POST" action="{{ url_for('add_comment', post_id=post.id) }}" class="comment-form">
                 <div class="form-group">
-                    <label for="content">Ваш комментарий</label>
-                    <textarea id="content" name="content" rows="3" required
+                    <label for="comment-content">Ваш комментарий</label>
+                    <textarea id="comment-content" name="content" rows="3" required
                               placeholder="Напишите комментарий..." minlength="2"></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
@@ -118,7 +130,7 @@
                             <a href="{{ url_for('user_profile', username=comment.username) }}" class="comment-author">
                                 {{ comment.username }}
                             </a>
-                            <time class="comment-date">{{ comment.created_at[:16].replace('T', ' ') }}</time>
+                            <time class="comment-date">{{ comment.created_at | format_date_ru }}</time>
                         </div>
                         <div class="comment-content">{{ comment.content | linkify }}</div>
                         {% if g.user and (g.user.id == comment.author_id or g.user.is_admin) %}

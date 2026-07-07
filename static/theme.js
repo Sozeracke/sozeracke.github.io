@@ -64,6 +64,64 @@
         });
     }
 
+    document.querySelectorAll("[data-flash]").forEach(function (flash) {
+        var closeBtn = flash.querySelector("[data-flash-close]");
+        var hideFlash = function () {
+            flash.classList.add("flash--hidden");
+            window.setTimeout(function () {
+                flash.remove();
+            }, 220);
+        };
+        if (closeBtn) {
+            closeBtn.addEventListener("click", hideFlash);
+        }
+        if (flash.getAttribute("data-flash-type") !== "error") {
+            window.setTimeout(hideFlash, 5000);
+        }
+    });
+
+    var lightbox = document.createElement("div");
+    lightbox.className = "lightbox";
+    lightbox.hidden = true;
+    lightbox.innerHTML =
+        '<button type="button" class="lightbox-close" aria-label="Закрыть">×</button>' +
+        '<img src="" alt="" class="lightbox-image">';
+    document.body.appendChild(lightbox);
+
+    var lightboxImg = lightbox.querySelector(".lightbox-image");
+    var lightboxClose = lightbox.querySelector(".lightbox-close");
+
+    function openLightbox(src) {
+        if (!src || !lightboxImg) return;
+        lightboxImg.src = src;
+        lightbox.hidden = false;
+        document.body.classList.add("lightbox-open");
+    }
+
+    function closeLightbox() {
+        lightbox.hidden = true;
+        document.body.classList.remove("lightbox-open");
+        if (lightboxImg) lightboxImg.src = "";
+    }
+
+    document.addEventListener("click", function (event) {
+        var image = event.target.closest(".lightbox-image");
+        if (image && !image.closest(".lightbox") && image.src) {
+            event.preventDefault();
+            openLightbox(image.src);
+            return;
+        }
+        if (event.target === lightbox || event.target === lightboxClose) {
+            closeLightbox();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !lightbox.hidden) {
+            closeLightbox();
+        }
+    });
+
     document.querySelectorAll(".like-form").forEach(function (form) {
         form.addEventListener("submit", function (event) {
             event.preventDefault();
