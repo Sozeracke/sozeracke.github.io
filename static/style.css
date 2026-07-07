@@ -4,6 +4,14 @@
     padding: 0;
 }
 
+@font-face {
+    font-family: "AvatarLetter";
+    src: url("fonts/avatar-letter.ttf") format("truetype");
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg: #0f0f13;
     --surface: #1a1a24;
@@ -1019,18 +1027,17 @@ body {
     inset: 0;
     display: grid;
     place-items: center;
+    font-family: "AvatarLetter", "Arial Black", Arial, sans-serif;
     color: #fff;
-    font-weight: 800;
+    font-weight: 900;
     text-transform: uppercase;
     line-height: 1;
     text-align: center;
-    transform: translateY(3%);
+    transform: translateY(2%);
+    -webkit-text-stroke: 1.5px #111;
+    paint-order: stroke fill;
     text-shadow:
-        -1.5px -1.5px 0 #111,
-        1.5px -1.5px 0 #111,
-        -1.5px 1.5px 0 #111,
-        1.5px 1.5px 0 #111,
-        0 2px 6px rgba(0, 0, 0, 0.55);
+        0 2px 4px rgba(0, 0, 0, 0.45);
 }
 
 .avatar-xs,
