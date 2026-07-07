@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
+    <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=10">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-inner">
             <a href="{{ url_for('index') }}" class="logo">
-                <span class="logo-title">{{ site_name }}</span>
-                <span class="logo-byline">{{ site_byline }}</span>
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="logo-image">
+                <span class="logo-text">
+                    <span class="logo-title">{{ site_name }}</span>
+                    <span class="logo-byline">{{ site_byline }}</span>
+                </span>
             </a>
 
             {% if g.user %}
@@ -76,8 +80,11 @@
     <footer class="footer">
         <div class="container footer-inner">
             <div class="footer-brand">
-                <span class="footer-title">{{ site_name }}</span>
-                <span class="footer-byline">{{ site_byline }}</span>
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="footer-logo">
+                <div class="footer-brand-text">
+                    <span class="footer-title">{{ site_name }}</span>
+                    <span class="footer-byline">{{ site_byline }}</span>
+                </div>
             </div>
             <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
             <span class="footer-separator">·</span>
