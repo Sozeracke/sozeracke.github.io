@@ -13,7 +13,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=16">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=17">
     <script src="{{ url_for('static', filename='theme.js') }}?v=16" defer></script>
 </head>
 <body>
@@ -56,7 +56,7 @@
                 <div class="nav-account">
                     <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
                         {% from '_avatar.html' import user_avatar with context %}
-                        {{ user_avatar(g.user.username, g.user.avatar, 'xs') }}
+                        {{ user_avatar(g.user.username, g.user.avatar, 'xs', '', g.user.id) }}
                         <span class="nav-user-info">
                             <span class="nav-user-identity">
                                 <span class="nav-user-name-row">

@@ -13,7 +13,7 @@
                 <label>Текущий аватар</label>
                 <div class="avatar-preview">
                     {% from '_avatar.html' import user_avatar with context %}
-                    {{ user_avatar(g.user.username, g.user.avatar, 'preview') }}
+                    {{ user_avatar(g.user.username, g.user.avatar, 'preview', '', g.user.id) }}
                 </div>
             </div>
             <div class="form-group">

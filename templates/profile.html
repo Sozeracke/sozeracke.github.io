@@ -7,7 +7,7 @@
 <section class="profile-header">
     <div class="profile-avatar-wrap">
         {% from '_avatar.html' import user_avatar with context %}
-        {{ user_avatar(profile_user.username, profile_user.avatar, 'lg', 'profile-avatar') }}
+        {{ user_avatar(profile_user.username, profile_user.avatar, 'lg', 'profile-avatar', profile_user.id) }}
     </div>
     <div class="profile-info">
         <h1>

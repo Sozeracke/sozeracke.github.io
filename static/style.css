@@ -1000,7 +1000,6 @@ body {
 }
 
 .avatar-letter {
-    background-image: url("server-avatar-bg.png");
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
@@ -1009,12 +1008,25 @@ body {
     justify-content: center;
 }
 
+.avatar-letter.avatar-bg-default {
+    background-image: url("server-avatar-bg.png");
+}
+
+.avatar-letter.avatar-bg-alt {
+    background-image: url("server-avatar-bg-alt.png");
+}
+
 .avatar-letter span {
     color: #fff;
     font-weight: 800;
     text-transform: uppercase;
     line-height: 1;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    text-shadow:
+        -1.5px -1.5px 0 #111,
+        1.5px -1.5px 0 #111,
+        -1.5px 1.5px 0 #111,
+        1.5px 1.5px 0 #111,
+        0 2px 6px rgba(0, 0, 0, 0.55);
 }
 
 .avatar-xs,

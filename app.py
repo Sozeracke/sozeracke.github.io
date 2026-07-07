@@ -178,7 +178,18 @@ def avatar_letter(username):
     return name[0].upper() if name else "?"
 
 
+def avatar_bg_variant(username, user_id=None):
+    if user_id is not None:
+        seed = int(user_id)
+    elif username:
+        seed = sum(ord(ch) for ch in str(username))
+    else:
+        seed = 0
+    return "alt" if seed % 2 else "default"
+
+
 app.jinja_env.filters["avatar_letter"] = avatar_letter
+app.jinja_env.filters["avatar_bg_variant"] = avatar_bg_variant
 
 
 def is_user_online(last_seen, user_id=None):

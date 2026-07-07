@@ -4,7 +4,7 @@
        class="conversation-item {% if active_username and contact.username == active_username %}active{% endif %} {% if contact.unread_count %}unread{% endif %}"
        data-username="{{ contact.username|lower }}">
         <div class="conversation-avatar">
-            {{ user_avatar(contact.username, contact.avatar, 'sm') }}
+            {{ user_avatar(contact.username, contact.avatar, 'sm', '', contact.id) }}
             <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
                   title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
         </div>

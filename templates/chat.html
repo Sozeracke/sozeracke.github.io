@@ -27,7 +27,7 @@
         <div class="chat-header">
             <div class="conversation-avatar conversation-avatar-sm">
                 {% from '_avatar.html' import user_avatar with context %}
-                {{ user_avatar(partner.username, partner.avatar, 'sm') }}
+                {{ user_avatar(partner.username, partner.avatar, 'sm', '', partner.id) }}
             </div>
             <div>
                 <div class="chat-header-name">
