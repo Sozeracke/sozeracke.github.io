@@ -13,18 +13,33 @@
     <div class="post-card-body">
         <div class="post-card-header">
             <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                <span class="user-name-with-level">
-                    {{ post.username }}
-                    {% if show_author_level %}
-                        {% with xp=post.author_xp|default(0, true), username=post.username, icon_only=true %}
-                            {% include '_user_level.html' %}
+                {% if show_online and post.author_is_admin %}
+                    {% from '_user_identity_stack.html' import user_identity_stack with context %}
+                    {{ user_identity_stack(
+                        post.username,
+                        post.author_xp,
+                        true,
+                        post.author_last_seen,
+                        post.author_id,
+                        'start',
+                        true,
+                        false,
+                        'user-name-with-level'
+                    ) }}
+                {% else %}
+                    <span class="user-name-with-level">
+                        {{ post.username }}
+                        {% if show_author_level %}
+                            {% with xp=post.author_xp|default(0, true), username=post.username, icon_only=true %}
+                                {% include '_user_level.html' %}
+                            {% endwith %}
+                        {% endif %}
+                    </span>
+                    {% if show_online %}
+                        {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
+                            {% include '_online_status.html' %}
                         {% endwith %}
                     {% endif %}
-                </span>
-                {% if show_online %}
-                    {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
-                        {% include '_online_status.html' %}
-                    {% endwith %}
                 {% endif %}
             </a>
             <div class="post-card-meta">

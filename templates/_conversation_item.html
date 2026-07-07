@@ -5,23 +5,42 @@
        data-username="{{ contact.username|lower }}">
         <div class="conversation-avatar">
             {{ user_avatar(contact.username, contact.avatar, 'sm', '', contact.id) }}
-            <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
-                  title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
+            {% if not contact.is_admin %}
+                <span class="avatar-online-dot {% if contact.last_seen | user_online %}is-online{% else %}is-offline{% endif %}"
+                      title="{% if contact.last_seen | user_online %}В сети{% else %}Не в сети{% endif %}"></span>
+            {% endif %}
         </div>
         <div class="conversation-info">
             <div class="conversation-top">
-                <strong class="user-name-with-level">
-                    {{ contact.username }}
-                    {% with xp=contact.xp|default(0, true), username=contact.username, is_admin=contact.is_admin, icon_only=true %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                </strong>
+                {% if contact.is_admin %}
+                    {% from '_user_identity_stack.html' import user_identity_stack with context %}
+                    {{ user_identity_stack(
+                        contact.username,
+                        contact.xp,
+                        true,
+                        contact.last_seen,
+                        contact.id,
+                        'start',
+                        true,
+                        true,
+                        'user-name-with-level'
+                    ) }}
+                {% else %}
+                    <strong class="user-name-with-level">
+                        {{ contact.username }}
+                        {% with xp=contact.xp|default(0, true), username=contact.username, is_admin=contact.is_admin, icon_only=true %}
+                            {% include '_user_level.html' %}
+                        {% endwith %}
+                    </strong>
+                {% endif %}
                 {% if contact.is_pinned %}
                     <span class="conversation-pin-label" title="Закреплён">📌</span>
                 {% endif %}
-                {% with is_admin=contact.is_admin %}
-                    {% include '_admin_badge.html' %}
-                {% endwith %}
+                {% if not contact.is_admin %}
+                    {% with is_admin=contact.is_admin %}
+                        {% include '_admin_badge.html' %}
+                    {% endwith %}
+                {% endif %}
                 {% if show_message_time and contact.last_message_at %}
                     <time>{{ contact.last_message_at[:16].replace('T', ' ') }}</time>
                 {% endif %}

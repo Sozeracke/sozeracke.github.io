@@ -13,15 +13,29 @@
                 {{ user_avatar(g.user.username, g.user.avatar, 'md', '', g.user.id) }}
             </div>
             <div class="welcome-user-info">
-                <div class="welcome-user-name">
-                    <span>{{ g.user.username }}</span>
-                    {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                    {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
-                        {% include '_online_status.html' %}
-                    {% endwith %}
-                </div>
+                {% if g.user.is_admin %}
+                    {% from '_user_identity_stack.html' import user_identity_stack with context %}
+                    {{ user_identity_stack(
+                        g.user.username,
+                        g.user.xp,
+                        true,
+                        g.user.last_seen,
+                        g.user.id,
+                        'start',
+                        true,
+                        false
+                    ) }}
+                {% else %}
+                    <div class="welcome-user-name">
+                        <span>{{ g.user.username }}</span>
+                        {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
+                            {% include '_user_level.html' %}
+                        {% endwith %}
+                        {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                            {% include '_online_status.html' %}
+                        {% endwith %}
+                    </div>
+                {% endif %}
             </div>
         </div>
     {% endif %}

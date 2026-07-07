@@ -31,18 +31,31 @@
             </div>
             <div>
                 <div class="chat-header-name">
-                    <strong class="user-name-with-level">
-                        {{ partner.username }}
-                        {% with xp=partner.xp|default(0, true), username=partner.username, is_admin=partner.is_admin, icon_only=true %}
-                            {% include '_user_level.html' %}
+                    {% if partner.is_admin %}
+                        {% from '_user_identity_stack.html' import user_identity_stack with context %}
+                        {{ user_identity_stack(
+                            partner.username,
+                            partner.xp,
+                            true,
+                            partner.last_seen,
+                            none,
+                            'start',
+                            true,
+                            true,
+                            'user-name-with-level',
+                            'partner-online-status'
+                        ) }}
+                    {% else %}
+                        <strong class="user-name-with-level">
+                            {{ partner.username }}
+                            {% with xp=partner.xp|default(0, true), username=partner.username, is_admin=partner.is_admin, icon_only=true %}
+                                {% include '_user_level.html' %}
+                            {% endwith %}
+                        </strong>
+                        {% with last_seen=partner.last_seen, check_user_id=none, status_id='partner-online-status' %}
+                            {% include '_online_status.html' %}
                         {% endwith %}
-                    </strong>
-                    {% with is_admin=partner.is_admin %}
-                        {% include '_admin_badge.html' %}
-                    {% endwith %}
-                    {% with last_seen=partner.last_seen, check_user_id=none, status_id='partner-online-status' %}
-                        {% include '_online_status.html' %}
-                    {% endwith %}
+                    {% endif %}
                 </div>
                 <a href="{{ url_for('user_profile', username=partner.username) }}" class="chat-profile-link">
                     Профиль
