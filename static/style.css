@@ -2182,56 +2182,6 @@ body {
     gap: 4px;
 }
 
-.user-identity-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 3px;
-    line-height: 1.2;
-}
-
-.user-identity-stack--end {
-    align-items: flex-end;
-    text-align: right;
-}
-
-.user-identity-name {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-}
-
-.user-identity-stack .online-status {
-    margin-left: 0;
-}
-
-.user-identity-stack .nav-admin-badge {
-    margin-bottom: 0;
-}
-
-.post-author .user-identity-stack {
-    color: inherit;
-}
-
-.conversation-top .user-identity-stack {
-    flex: 1;
-    min-width: 0;
-}
-
-.conversation-top .user-identity-stack .user-identity-name {
-    font-weight: 700;
-}
-
-.profile-info h1:has(.user-identity-stack) {
-    display: block;
-}
-
-.profile-info h1 .user-identity-stack .user-identity-name {
-    font-size: 1.8rem;
-    font-weight: 800;
-}
-
 .user-level-emoji {
     font-size: 0.95rem;
     line-height: 1;
@@ -2701,7 +2651,7 @@ body {
         display: none;
     }
 
-    .nav-user-info .user-identity-stack .online-label {
+    .nav-user-identity .online-label {
         display: inline;
     }
 }

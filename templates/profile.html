@@ -10,32 +10,18 @@
         {{ user_avatar(profile_user.username, profile_user.avatar, 'lg', 'profile-avatar', profile_user.id) }}
     </div>
     <div class="profile-info">
-        {% if profile_user.is_admin %}
-            {% from '_user_identity_stack.html' import user_identity_stack with context %}
-            <h1>{{ user_identity_stack(
-                profile_user.username,
-                profile_user.xp,
-                true,
-                profile_user.last_seen,
-                profile_user.id,
-                'start',
-                true,
-                true,
-                'user-name-with-level'
-            ) }}</h1>
-        {% else %}
-            <h1>
-                <span class="user-name-with-level">
-                    {{ profile_user.username }}
-                    {% with xp=profile_user.xp|default(0, true), username=profile_user.username, is_admin=profile_user.is_admin, icon_only=true %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                </span>
-                {% with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
-                    {% include '_online_status.html' %}
+        <h1>
+            <span class="user-name-with-level">
+                {{ profile_user.username }}
+                {% with xp=profile_user.xp|default(0, true), username=profile_user.username, is_admin=profile_user.is_admin, icon_only=true %}
+                    {% include '_user_level.html' %}
                 {% endwith %}
-            </h1>
-        {% endif %}
+            </span>
+            {% if profile_user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+            {% with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
+                {% include '_online_status.html' %}
+            {% endwith %}
+        </h1>
         <div class="profile-level-block">
             {% with xp=profile_user.xp|default(0, true), username=profile_user.username, is_admin=profile_user.is_admin, hide_icon=true %}
                 {% include '_user_level.html' %}

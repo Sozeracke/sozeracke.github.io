@@ -839,7 +839,7 @@ def fetch_posts(category_slug=None, tag_slug=None, search=None):
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
                posts.published_at, posts.is_private, posts.is_pinned,
                users.username, users.id AS author_id, users.last_seen AS author_last_seen,
-               users.xp AS author_xp, users.is_admin AS author_is_admin,
+               users.xp AS author_xp,
                categories.name AS category_name, categories.slug AS category_slug,
                {engagement_sql}
         FROM posts
@@ -1285,7 +1285,6 @@ def user_profile(username):
         SELECT posts.id, posts.title, posts.content, posts.image, posts.created_at,
                posts.published_at, posts.is_private,
                users.username, users.id AS author_id, users.xp AS author_xp,
-               users.is_admin AS author_is_admin,
                users.last_seen AS author_last_seen,
                categories.name AS category_name, categories.slug AS category_slug,
                {engagement_sql}

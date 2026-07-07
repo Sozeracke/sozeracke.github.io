@@ -13,7 +13,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=24">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=25">
     <script src="{{ url_for('static', filename='theme.js') }}?v=17" defer></script>
 </head>
 <body>
@@ -58,31 +58,19 @@
                         {% from '_avatar.html' import user_avatar with context %}
                         {{ user_avatar(g.user.username, g.user.avatar, 'xs', '', g.user.id) }}
                         <span class="nav-user-info">
-                            {% if g.user.is_admin %}
-                                {% from '_user_identity_stack.html' import user_identity_stack with context %}
-                                {{ user_identity_stack(
-                                    g.user.username,
-                                    g.user.xp,
-                                    true,
-                                    g.user.last_seen,
-                                    g.user.id,
-                                    'end',
-                                    true,
-                                    true,
-                                    'nav-user-name-row'
-                                ) }}
-                            {% else %}
-                                <span class="nav-user-identity">
-                                    <span class="nav-user-name-row">
-                                        <span class="nav-username">{{ g.user.username }}</span>
-                                        {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
-                                            {% include '_user_level.html' %}
-                                        {% endwith %}
-                                    </span>
-                                    {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
-                                        {% include '_online_status.html' %}
+                            <span class="nav-user-identity">
+                                <span class="nav-user-name-row">
+                                    <span class="nav-username">{{ g.user.username }}</span>
+                                    {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
+                                        {% include '_user_level.html' %}
                                     {% endwith %}
                                 </span>
+                                {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
+                                    {% include '_online_status.html' %}
+                                {% endwith %}
+                            </span>
+                            {% if g.user.is_admin %}
+                                <span class="badge badge-admin nav-admin-badge">админ</span>
                             {% endif %}
                         </span>
                     </a>
