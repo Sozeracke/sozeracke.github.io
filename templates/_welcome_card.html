@@ -3,7 +3,7 @@
 
     <header class="welcome-header">
         <h2 class="welcome-title">Добро пожаловать на {{ site_name }}</h2>
-        <p class="welcome-subtitle">Ваш путь к приватным знаниям начинается здесь</p>
+        <p class="welcome-subtitle">Закрытый блог, гайды и спокойные обсуждения</p>
     </header>
 
     {% if g.user %}
@@ -28,18 +28,18 @@
 
     <p class="welcome-text">
         <span class="welcome-text-mark" aria-hidden="true">›</span>
-        Исследуйте гайды, участвуйте в обсуждениях и делитесь опытом в нашем приватном сообществе.
+        Читайте свежие материалы, возвращайтесь к полезным заметкам и общайтесь с участниками сообщества.
     </p>
 
     <div class="welcome-actions">
         <a href="#hero-search" class="welcome-action-btn">
             <span class="welcome-action-icon" aria-hidden="true">🔍</span>
-            <span>Найти ответы</span>
+            <span>Найти материал</span>
         </a>
         {% if g.user %}
             <a href="{{ url_for('messages_inbox') }}" class="welcome-action-btn">
                 <span class="welcome-action-icon" aria-hidden="true">💬</span>
-                <span>Присоединиться к беседе</span>
+                <span>Открыть сообщения</span>
             </a>
             <a href="{{ url_for('edit_profile') }}" class="welcome-action-btn">
                 <span class="welcome-action-icon" aria-hidden="true">⚙️</span>
@@ -48,7 +48,7 @@
         {% else %}
             <a href="{{ url_for('register') }}" class="welcome-action-btn">
                 <span class="welcome-action-icon" aria-hidden="true">💬</span>
-                <span>Присоединиться к беседе</span>
+                <span>Создать аккаунт</span>
             </a>
             <a href="{{ url_for('login') }}" class="welcome-action-btn">
                 <span class="welcome-action-icon" aria-hidden="true">⚙️</span>
@@ -83,6 +83,6 @@
     {% endif %}
 
     <a href="#posts-section" class="btn btn-primary btn-full welcome-cta" data-welcome-close-soft>
-        Перейти к обсуждениям
+        Смотреть последние посты
     </a>
 </section>
