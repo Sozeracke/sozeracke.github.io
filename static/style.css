@@ -106,14 +106,30 @@ body::before {
 body::after {
     content: "";
     position: fixed;
-    inset: 0;
+    inset: -12vh -10vw;
     z-index: -2;
     pointer-events: none;
     background:
-        radial-gradient(circle at 10% 24%, var(--ambient-circle) 0 76px, transparent 77px),
-        radial-gradient(circle at 82% 22%, rgba(32, 201, 151, 0.04) 0 112px, transparent 113px),
-        radial-gradient(circle at 76% 78%, rgba(245, 158, 11, 0.035) 0 94px, transparent 95px);
-    opacity: 0.8;
+        radial-gradient(circle at 10% 24%, var(--ambient-circle) 0 86px, transparent 87px),
+        radial-gradient(circle at 82% 22%, rgba(32, 201, 151, 0.055) 0 128px, transparent 129px),
+        radial-gradient(circle at 76% 78%, rgba(245, 158, 11, 0.045) 0 106px, transparent 107px),
+        radial-gradient(circle at 34% 68%, rgba(139, 108, 255, 0.045) 0 92px, transparent 93px);
+    opacity: 0.86;
+    transform: translate3d(0, 0, 0) scale(1.02);
+    animation: ambient-drift 44s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes ambient-drift {
+    0% {
+        transform: translate3d(-1.6vw, -1.2vh, 0) scale(1.02);
+    }
+    42% {
+        transform: translate3d(1.2vw, 1.8vh, 0) scale(1.045);
+    }
+    100% {
+        transform: translate3d(2.4vw, -0.8vh, 0) scale(1.03);
+    }
 }
 
 [data-theme="light"] body::before {
@@ -463,6 +479,11 @@ main {
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
         transition-duration: 0.01ms !important;
+    }
+
+    body::after {
+        animation: none !important;
+        transform: none;
     }
 }
 
