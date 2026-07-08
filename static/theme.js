@@ -122,6 +122,47 @@
         }
     });
 
+    function setShareButtonState(button, text, copied) {
+        var label = button.querySelector(".share-card-label");
+        if (!label) return;
+        var original = button.getAttribute("data-share-original") || label.textContent;
+        button.setAttribute("data-share-original", original);
+        label.textContent = text;
+        button.classList.toggle("share-card-button--copied", copied);
+        window.setTimeout(function () {
+            label.textContent = original;
+            button.classList.remove("share-card-button--copied");
+        }, 1600);
+    }
+
+    document.addEventListener("click", function (event) {
+        var shareButton = event.target.closest("[data-share-post]");
+        if (!shareButton) {
+            return;
+        }
+        event.preventDefault();
+        var shareUrl = shareButton.getAttribute("data-share-url") || window.location.href;
+        var shareTitle = shareButton.getAttribute("data-share-title") || document.title;
+
+        if (navigator.share) {
+            navigator.share({
+                title: shareTitle,
+                url: shareUrl,
+            }).catch(function () {});
+            return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(shareUrl).then(function () {
+                setShareButtonState(shareButton, "Скопировано", true);
+            }).catch(function () {
+                setShareButtonState(shareButton, "Ссылка готова", true);
+            });
+        } else {
+            setShareButtonState(shareButton, "Ссылка готова", true);
+        }
+    });
+
     var readingProgress = document.querySelector("[data-reading-progress]");
     var article = document.querySelector(".post-full");
 

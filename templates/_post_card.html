@@ -10,6 +10,7 @@
                 <span class="post-card-cover-icon">📝</span>
             </div>
         {% endif %}
+        <span class="post-card-cover-action">Открыть</span>
     </a>
     <div class="post-card-body">
         <div class="post-card-header">
@@ -53,7 +54,20 @@
                 <span class="like-count">❤️ {{ post.like_count|default(0) }}</span>
                 <span class="comment-count">💬 {{ post.comment_count|default(0) }}</span>
             </div>
-            <a href="{{ url_for('view_post', post_id=post.id) }}" class="read-more">Читать далее →</a>
+            <div class="post-card-actions">
+                <button type="button"
+                        class="share-card-button"
+                        data-share-post
+                        data-share-url="{{ url_for('view_post', post_id=post.id, _external=True) }}"
+                        data-share-title="{{ post.title }}"
+                        aria-label="Поделиться постом {{ post.title }}">
+                    <span class="share-card-icon" aria-hidden="true">↗</span>
+                    <span class="share-card-label">Поделиться</span>
+                </button>
+                <a href="{{ url_for('view_post', post_id=post.id) }}" class="read-more">
+                    <span>Читать далее</span>
+                </a>
+            </div>
         </div>
     </div>
 </article>
