@@ -21,18 +21,15 @@
                     {% endwith %}
                 {% endif %}
             </a>
-            <div class="post-card-meta">
-                {% if is_post_pinned(post) %}
-                    <span class="badge badge-pinned">📌 закреплён</span>
-                {% endif %}
-                <time class="post-date">{{ (post.published_at or post.created_at) | format_date_ru }}</time>
-                <span class="post-reading-time">{{ post.content | reading_time }} мин</span>
-                {% if is_post_private(post) %}
-                    <span class="badge badge-private">приватный</span>
-                {% elif is_post_scheduled(post) %}
-                    <span class="badge badge-scheduled">запланирован</span>
-                {% endif %}
-            </div>
+            {% if is_post_private(post) or is_post_scheduled(post) %}
+                <div class="post-card-meta">
+                    {% if is_post_private(post) %}
+                        <span class="badge badge-private">приватный</span>
+                    {% elif is_post_scheduled(post) %}
+                        <span class="badge badge-scheduled">запланирован</span>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
         {% if post.category_name %}
             <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
