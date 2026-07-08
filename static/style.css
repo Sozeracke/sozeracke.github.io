@@ -90,13 +90,15 @@ body {
     display: flex;
     flex-direction: column;
     padding-top: var(--nav-height);
+    overflow-x: hidden;
+    isolation: isolate;
 }
 
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
     background:
         linear-gradient(180deg, rgba(16, 17, 20, 0.18), transparent 34%),
@@ -107,28 +109,33 @@ body::after {
     content: "";
     position: fixed;
     inset: -12vh -10vw;
-    z-index: -2;
+    z-index: 0;
     pointer-events: none;
     background:
-        radial-gradient(circle at 10% 24%, var(--ambient-circle) 0 86px, transparent 87px),
-        radial-gradient(circle at 82% 22%, rgba(32, 201, 151, 0.055) 0 128px, transparent 129px),
-        radial-gradient(circle at 76% 78%, rgba(245, 158, 11, 0.045) 0 106px, transparent 107px),
-        radial-gradient(circle at 34% 68%, rgba(139, 108, 255, 0.045) 0 92px, transparent 93px);
-    opacity: 0.86;
-    transform: translate3d(0, 0, 0) scale(1.02);
-    animation: ambient-drift 44s ease-in-out infinite alternate;
+        radial-gradient(circle at 10% 24%, rgba(139, 108, 255, 0.11) 0 112px, transparent 114px),
+        radial-gradient(circle at 82% 22%, rgba(32, 201, 151, 0.095) 0 154px, transparent 156px),
+        radial-gradient(circle at 76% 78%, rgba(245, 158, 11, 0.07) 0 128px, transparent 130px),
+        radial-gradient(circle at 34% 68%, rgba(92, 165, 255, 0.075) 0 116px, transparent 118px);
+    opacity: 0.95;
+    transform: translate3d(0, 0, 0) scale(1.04);
+    animation: ambient-drift 32s ease-in-out infinite alternate;
     will-change: transform;
+}
+
+body > :not(.lightbox) {
+    position: relative;
+    z-index: 1;
 }
 
 @keyframes ambient-drift {
     0% {
-        transform: translate3d(-1.6vw, -1.2vh, 0) scale(1.02);
+        transform: translate3d(-3.2vw, -2.2vh, 0) scale(1.04);
     }
     42% {
-        transform: translate3d(1.2vw, 1.8vh, 0) scale(1.045);
+        transform: translate3d(2.4vw, 3.4vh, 0) scale(1.075);
     }
     100% {
-        transform: translate3d(2.4vw, -0.8vh, 0) scale(1.03);
+        transform: translate3d(4.2vw, -1.8vh, 0) scale(1.05);
     }
 }
 
