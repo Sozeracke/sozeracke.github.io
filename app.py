@@ -1605,12 +1605,36 @@ def user_profile(username):
     posts_query += " ORDER BY COALESCE(posts.published_at, posts.created_at) DESC"
     posts_raw = db.execute(posts_query, posts_params).fetchall()
     posts = attach_tags_to_posts(posts_raw)
+    visible_post_ids = [post["id"] for post in posts]
+    likes_received = sum(post.get("like_count", 0) for post in posts)
+    comment_access_sql, comment_access_params = build_post_access_filter(
+        getattr(g, "user", None)
+    )
+    comments_query = f"""
+        SELECT COUNT(*)
+        FROM comments
+        JOIN posts ON posts.id = comments.post_id
+        WHERE comments.user_id = ?
+          AND {comment_access_sql}
+    """
+    comments_params = [profile_user["id"], *comment_access_params]
+    if not (viewer_is_owner or is_admin()):
+        comments_query += f" AND {post_is_public_sql('posts')}"
+        comments_params.append(publication_cutoff())
+    comments_count = db.execute(comments_query, comments_params).fetchone()[0]
+    profile_stats = {
+        "posts": len(posts),
+        "comments": comments_count,
+        "likes": likes_received,
+        "reputation": profile_user["xp"] or 0,
+    }
 
     return render_template(
         "profile.html",
         profile_user=profile_user,
         posts=posts,
         post_count=len(posts),
+        profile_stats=profile_stats,
     )
 
 
@@ -2079,7 +2103,6 @@ def view_post(post_id):
 
     post_tags = get_post_tags(post_id)
     is_scheduled_preview = not is_post_published(post)
-    related_posts = fetch_related_posts(post) if is_post_published(post) else []
 
     return render_template(
         "post.html",
@@ -2087,7 +2110,6 @@ def view_post(post_id):
         comments=comments,
         post_tags=post_tags,
         is_scheduled_preview=is_scheduled_preview,
-        related_posts=related_posts,
     )
 
 

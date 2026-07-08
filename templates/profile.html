@@ -4,36 +4,83 @@
 {% block title %}{{ profile_user.username }} — {{ site_name }}{% endblock %}
 
 {% block content %}
-<section class="profile-header">
-    <div class="profile-avatar-wrap">
-        {% from '_avatar.html' import user_avatar with context %}
-        {{ user_avatar(profile_user.username, profile_user.avatar, 'lg', 'profile-avatar', profile_user.id) }}
-    </div>
-    <div class="profile-info">
-        <h1>
-            <span class="user-name-with-level">{{ profile_user.username }}</span>
-            {% if profile_user.is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
-            {% with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
-                {% include '_online_status.html' %}
-            {% endwith %}
-        </h1>
-        <p class="profile-meta">
-            На сайте с {{ profile_user.created_at[:10] }} · {{ post_count }}
-            {% if post_count == 1 %}пост{% elif post_count < 5 %}поста{% else %}постов{% endif %}
-        </p>
-        {% if profile_user.bio %}
-            <div class="profile-bio">{{ profile_user.bio | linkify }}</div>
-        {% endif %}
-        <div class="profile-actions">
-            {% if g.user and g.user.id == profile_user.id %}
-                <a href="{{ url_for('edit_profile') }}" class="btn btn-ghost btn-sm">Редактировать профиль</a>
-            {% elif g.user %}
-                <a href="{{ url_for('chat_with_user', username=profile_user.username) }}" class="btn btn-primary btn-sm">
-                    Написать сообщение
-                </a>
+<section class="profile-card">
+    <div class="profile-card-main">
+        <div class="profile-avatar-wrap">
+            {% from '_avatar.html' import user_avatar with context %}
+            {{ user_avatar(profile_user.username, profile_user.avatar, 'lg', 'profile-avatar', profile_user.id) }}
+        </div>
+        <div class="profile-info">
+            <span class="profile-eyebrow">Профиль пользователя</span>
+            <h1>
+                <span class="user-name-with-level">{{ profile_user.username }}</span>
+            </h1>
+            <div class="profile-role-row">
+                {% if profile_user.is_admin %}
+                    <span class="badge badge-admin">Администратор</span>
+                {% else %}
+                    <span class="badge">Участник</span>
+                {% endif %}
+                {% with last_seen=profile_user.last_seen, check_user_id=profile_user.id %}
+                    {% include '_online_status.html' %}
+                {% endwith %}
+            </div>
+            {% if profile_user.bio %}
+                <div class="profile-bio">{{ profile_user.bio | linkify }}</div>
             {% endif %}
+            <div class="profile-actions">
+                {% if g.user and g.user.id == profile_user.id %}
+                    <a href="{{ url_for('edit_profile') }}" class="btn btn-ghost btn-sm">Редактировать профиль</a>
+                {% elif g.user %}
+                    <a href="{{ url_for('chat_with_user', username=profile_user.username) }}" class="btn btn-primary btn-sm">
+                        Написать сообщение
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
+
+    <div class="profile-divider" aria-hidden="true"></div>
+
+    <dl class="profile-stats-grid">
+        <div class="profile-stat">
+            <dt>Постов</dt>
+            <dd>{{ profile_stats.posts }}</dd>
+        </div>
+        <div class="profile-stat">
+            <dt>Комментариев</dt>
+            <dd>{{ profile_stats.comments }}</dd>
+        </div>
+        <div class="profile-stat">
+            <dt>Лайков</dt>
+            <dd>{{ profile_stats.likes }}</dd>
+        </div>
+        <div class="profile-stat profile-stat-reputation">
+            <dt>Репутация</dt>
+            <dd>+{{ profile_stats.reputation }}</dd>
+        </div>
+    </dl>
+
+    <dl class="profile-dates">
+        <div>
+            <dt>Дата регистрации</dt>
+            <dd>{{ profile_user.created_at | format_date_ru }}</dd>
+        </div>
+        <div>
+            <dt>Последний онлайн</dt>
+            <dd>
+                {% if profile_user.last_seen %}
+                    {% if profile_user.last_seen | user_online %}
+                        Сейчас в сети
+                    {% else %}
+                        {{ profile_user.last_seen | format_date_ru }}
+                    {% endif %}
+                {% else %}
+                    Нет данных
+                {% endif %}
+            </dd>
+        </div>
+    </dl>
 </section>
 
 <section class="profile-posts">
