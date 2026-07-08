@@ -2367,6 +2367,66 @@ body.lightbox-open {
     scrollbar-width: thin;
 }
 
+.chat-date-divider {
+    position: sticky;
+    top: 8px;
+    z-index: 4;
+    align-self: center;
+    margin: 8px 0 4px;
+    pointer-events: none;
+}
+
+.chat-date-divider span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 5px 12px;
+    border: 1px solid rgba(139, 108, 255, 0.22);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 86%, var(--bg));
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(10px);
+}
+
+.chat-message-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+}
+
+.chat-message-row.mine {
+    justify-content: flex-end;
+}
+
+.chat-message-row.theirs {
+    justify-content: flex-start;
+}
+
+.chat-message-avatar,
+.chat-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+}
+
+.chat-avatar-placeholder {
+    visibility: hidden;
+}
+
+.chat-message-avatar .avatar {
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.chat-message-avatar .avatar-letter span {
+    font-size: 0.78rem;
+}
+
 .chat-bubble {
     max-width: min(74%, 620px);
     padding: 11px 15px 10px;
@@ -2390,7 +2450,6 @@ body.lightbox-open {
 }
 
 .chat-bubble.mine {
-    align-self: flex-end;
     background: linear-gradient(135deg, var(--primary), #0f9f7f);
     color: #fff;
     border-bottom-right-radius: 6px;
@@ -2401,10 +2460,17 @@ body.lightbox-open {
 }
 
 .chat-bubble.theirs {
-    align-self: flex-start;
     background: color-mix(in srgb, var(--surface) 90%, var(--bg));
     border: 1px solid var(--border);
     border-bottom-left-radius: 6px;
+}
+
+.chat-message-row.mine:not(.group-end) .chat-bubble {
+    border-bottom-right-radius: 18px;
+}
+
+.chat-message-row.theirs:not(.group-end) .chat-bubble {
+    border-bottom-left-radius: 18px;
 }
 
 .chat-sender {
@@ -2424,6 +2490,7 @@ body.lightbox-open {
     opacity: 0.62;
     margin-top: 6px;
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .chat-empty {

@@ -269,6 +269,36 @@ def format_date_ru(value):
     return dt.strftime("%d.%m.%Y")
 
 
+def chat_date_key(value):
+    dt = parse_iso_datetime(value)
+    return dt.date().isoformat() if dt else (value or "")[:10]
+
+
+def chat_time_label(value):
+    dt = parse_iso_datetime(value)
+    return dt.strftime("%H:%M") if dt else (value or "")[11:16]
+
+
+def chat_date_label(value):
+    dt = parse_iso_datetime(value)
+    if not dt:
+        return (value or "")[:10]
+    today = datetime.now().date()
+    date = dt.date()
+    if date == today:
+        return "Сегодня"
+    if (today - date).days == 1:
+        return "Вчера"
+    months = [
+        "января", "февраля", "марта", "апреля", "мая", "июня",
+        "июля", "августа", "сентября", "октября", "ноября", "декабря",
+    ]
+    label = f"{dt.day} {months[dt.month - 1]}"
+    if dt.year != today.year:
+        label += f" {dt.year}"
+    return label
+
+
 def reading_time(text):
     clean = strip_inline_image_markers(text or "")
     words = len(re.findall(r"\S+", clean))
@@ -283,6 +313,9 @@ def absolute_media_url(filename):
 
 
 app.jinja_env.filters["format_date_ru"] = format_date_ru
+app.jinja_env.filters["chat_date_key"] = chat_date_key
+app.jinja_env.filters["chat_date_label"] = chat_date_label
+app.jinja_env.filters["chat_time_label"] = chat_time_label
 app.jinja_env.filters["reading_time"] = reading_time
 
 
@@ -2453,7 +2486,8 @@ def _chat_with_user(username):
 
     messages = db.execute("""
         SELECT messages.id, messages.content, messages.created_at, messages.sender_id,
-               users.username AS sender_name, users.is_admin AS sender_is_admin
+               users.username AS sender_name, users.avatar AS sender_avatar,
+               users.is_admin AS sender_is_admin
         FROM messages
         JOIN users ON users.id = messages.sender_id
         WHERE messages.conversation_id = ?
@@ -2493,7 +2527,8 @@ def api_chat_messages(conv_id):
 
     rows = db.execute("""
         SELECT messages.id, messages.content, messages.created_at, messages.sender_id,
-               users.username AS sender_name, users.is_admin AS sender_is_admin
+               users.username AS sender_name, users.avatar AS sender_avatar,
+               users.is_admin AS sender_is_admin
         FROM messages
         JOIN users ON users.id = messages.sender_id
         WHERE messages.conversation_id = ? AND messages.id > ?
@@ -2529,9 +2564,15 @@ def api_chat_messages(conv_id):
             {
                 "id": r["id"],
                 "content": r["content"],
-                "created_at": r["created_at"][:16].replace("T", " "),
+                "created_at": r["created_at"],
+                "date_key": chat_date_key(r["created_at"]),
+                "date_label": chat_date_label(r["created_at"]),
+                "time_label": chat_time_label(r["created_at"]),
                 "sender_id": r["sender_id"],
                 "sender_name": r["sender_name"],
+                "sender_avatar_url": media_url(r["sender_avatar"]) if r["sender_avatar"] else "",
+                "sender_avatar_letter": avatar_letter(r["sender_name"]),
+                "sender_avatar_variant": avatar_bg_variant(r["sender_name"], r["sender_id"]),
                 "sender_is_admin": bool(r["sender_is_admin"]),
                 "is_mine": r["sender_id"] == session["user_id"],
             }

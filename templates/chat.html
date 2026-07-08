@@ -4,6 +4,7 @@
 {% block main_class %}container container-wide{% endblock %}
 
 {% block content %}
+{% from '_avatar.html' import user_avatar with context %}
 <div class="messages-layout">
     <aside class="messages-sidebar">
         <div class="messages-sidebar-header">
@@ -29,7 +30,6 @@
     <div class="chat-main">
         <div class="chat-header">
             <div class="conversation-avatar conversation-avatar-sm">
-                {% from '_avatar.html' import user_avatar with context %}
                 {{ user_avatar(partner.username, partner.avatar, 'sm', '', partner.id) }}
             </div>
             <div class="chat-header-info">
@@ -55,16 +55,54 @@
 
         <div class="chat-messages" id="chat-messages">
             {% for msg in messages %}
-                <div class="chat-bubble {% if msg.sender_id == g.user.id %}mine{% else %}theirs{% endif %}"
-                     data-id="{{ msg.id }}">
-                    {% if msg.sender_id != g.user.id %}
-                        <span class="chat-sender">
-                            {{ msg.sender_name }}
-                            {% if msg.sender_is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
-                        </span>
+                {% set current_date = msg.created_at | chat_date_key %}
+                {% set prev_msg = messages[loop.index0 - 1] if not loop.first else none %}
+                {% set next_msg = messages[loop.index] if not loop.last else none %}
+                {% set prev_date = prev_msg.created_at | chat_date_key if prev_msg else none %}
+                {% set next_date = next_msg.created_at | chat_date_key if next_msg else none %}
+                {% set is_mine = msg.sender_id == g.user.id %}
+                {% set group_end = loop.last or next_msg.sender_id != msg.sender_id or next_date != current_date %}
+
+                {% if loop.first or prev_date != current_date %}
+                    <div class="chat-date-divider" data-date-key="{{ current_date }}">
+                        <span>{{ msg.created_at | chat_date_label }}</span>
+                    </div>
+                {% endif %}
+
+                <div class="chat-message-row {% if is_mine %}mine{% else %}theirs{% endif %} {% if group_end %}group-end{% endif %}"
+                     data-id="{{ msg.id }}"
+                     data-sender-id="{{ msg.sender_id }}"
+                     data-date-key="{{ current_date }}">
+                    {% if not is_mine %}
+                        {% if group_end %}
+                            <div class="chat-message-avatar">
+                                {{ user_avatar(msg.sender_name, msg.sender_avatar, 'xs', 'chat-avatar', msg.sender_id) }}
+                            </div>
+                        {% else %}
+                            <div class="chat-avatar-placeholder" aria-hidden="true"></div>
+                        {% endif %}
                     {% endif %}
-                    <div class="chat-text">{{ msg.content | linkify }}</div>
-                    <time class="chat-time">{{ msg.created_at[:16].replace('T', ' ') }}</time>
+
+                    <div class="chat-bubble {% if is_mine %}mine{% else %}theirs{% endif %}">
+                        {% if not is_mine %}
+                            <span class="chat-sender">
+                                {{ msg.sender_name }}
+                                {% if msg.sender_is_admin %}<span class="badge badge-admin">админ</span>{% endif %}
+                            </span>
+                        {% endif %}
+                        <div class="chat-text">{{ msg.content | linkify }}</div>
+                        <time class="chat-time" datetime="{{ msg.created_at }}">{{ msg.created_at | chat_time_label }}</time>
+                    </div>
+
+                    {% if is_mine %}
+                        {% if group_end %}
+                            <div class="chat-message-avatar">
+                                {{ user_avatar(g.user.username, g.user.avatar, 'xs', 'chat-avatar', g.user.id) }}
+                            </div>
+                        {% else %}
+                            <div class="chat-avatar-placeholder" aria-hidden="true"></div>
+                        {% endif %}
+                    {% endif %}
                 </div>
             {% else %}
                 <p class="chat-empty" id="chat-empty">Напишите первое сообщение!</p>
@@ -104,7 +142,7 @@
     const emptyEl = document.getElementById('chat-empty');
     let lastId = 0;
 
-    container.querySelectorAll('.chat-bubble').forEach(el => {
+    container.querySelectorAll('.chat-message-row[data-id]').forEach(el => {
         const id = parseInt(el.dataset.id, 10);
         if (id > lastId) lastId = id;
     });
@@ -113,28 +151,85 @@
         container.scrollTop = container.scrollHeight;
     }
 
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function getLastMessageRow() {
+        const rows = container.querySelectorAll('.chat-message-row[data-id]');
+        return rows.length ? rows[rows.length - 1] : null;
+    }
+
+    function clearRowAvatar(row) {
+        const avatarSlot = row ? row.querySelector('.chat-message-avatar, .chat-avatar-placeholder') : null;
+        if (!avatarSlot) return;
+        avatarSlot.className = 'chat-avatar-placeholder';
+        avatarSlot.setAttribute('aria-hidden', 'true');
+        avatarSlot.innerHTML = '';
+        row.classList.remove('group-end');
+    }
+
+    function avatarHtml(msg) {
+        if (msg.sender_avatar_url) {
+            return '<img src="' + escapeHtml(msg.sender_avatar_url) + '" alt="" class="avatar avatar-photo avatar-xs chat-avatar">';
+        }
+        return '<div class="avatar avatar-letter avatar-bg-' + escapeHtml(msg.sender_avatar_variant || 'default') + ' avatar-xs chat-avatar" aria-hidden="true">' +
+            '<span>' + escapeHtml(msg.sender_avatar_letter || '?') + '</span>' +
+            '</div>';
+    }
+
+    function dateDividerHtml(msg) {
+        return '<div class="chat-date-divider" data-date-key="' + escapeHtml(msg.date_key) + '">' +
+            '<span>' + escapeHtml(msg.date_label || msg.date_key) + '</span>' +
+            '</div>';
+    }
+
     function addMessage(msg) {
         if (emptyEl) emptyEl.remove();
-        const div = document.createElement('div');
-        div.className = 'chat-bubble ' + (msg.is_mine ? 'mine' : 'theirs');
-        div.dataset.id = msg.id;
-        let html = '';
-        if (!msg.is_mine) {
-            html += '<span class="chat-sender">' + msg.sender_name;
-            if (msg.sender_is_admin) {
-                html += ' <span class="badge badge-admin">админ</span>';
-            }
-            html += '</span>';
+        const lastRow = getLastMessageRow();
+        const sameGroup = lastRow &&
+            lastRow.dataset.senderId === String(msg.sender_id) &&
+            lastRow.dataset.dateKey === msg.date_key;
+
+        if (!lastRow || lastRow.dataset.dateKey !== msg.date_key) {
+            container.insertAdjacentHTML('beforeend', dateDividerHtml(msg));
         }
-        html += '<div class="chat-text">' + linkifyText(msg.content) + '</div>';
-        html += '<time class="chat-time">' + msg.created_at + '</time>';
-        div.innerHTML = html;
-        container.appendChild(div);
+        if (sameGroup) {
+            clearRowAvatar(lastRow);
+        }
+
+        const row = document.createElement('div');
+        row.className = 'chat-message-row group-end ' + (msg.is_mine ? 'mine' : 'theirs');
+        row.dataset.id = msg.id;
+        row.dataset.senderId = msg.sender_id;
+        row.dataset.dateKey = msg.date_key;
+
+        let bubble = '<div class="chat-bubble ' + (msg.is_mine ? 'mine' : 'theirs') + '">';
+        if (!msg.is_mine) {
+            bubble += '<span class="chat-sender">' + escapeHtml(msg.sender_name);
+            if (msg.sender_is_admin) {
+                bubble += ' <span class="badge badge-admin">админ</span>';
+            }
+            bubble += '</span>';
+        }
+        bubble += '<div class="chat-text">' + linkifyText(msg.content) + '</div>';
+        bubble += '<time class="chat-time" datetime="' + escapeHtml(msg.created_at) + '">' +
+            escapeHtml(msg.time_label || msg.created_at) + '</time>';
+        bubble += '</div>';
+
+        const avatar = '<div class="chat-message-avatar">' + avatarHtml(msg) + '</div>';
+        row.innerHTML = msg.is_mine ? bubble + avatar : avatar + bubble;
+        container.appendChild(row);
         scrollToBottom();
     }
 
     function linkifyText(text) {
-        const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const escaped = escapeHtml(text);
         return escaped.replace(
             /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,
             function(url) {
