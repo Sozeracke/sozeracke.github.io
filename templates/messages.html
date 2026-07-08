@@ -7,7 +7,10 @@
 <div class="messages-layout">
     <aside class="messages-sidebar">
         <div class="messages-sidebar-header">
-            <h1>Сообщения</h1>
+            <div class="messages-title-block">
+                <span class="messages-eyebrow">Личные диалоги</span>
+                <h1>Сообщения</h1>
+            </div>
             {% if g.user.is_admin %}
                 <form method="GET" action="{{ url_for('messages_inbox') }}" class="user-search-form">
                     <input type="text" name="q" id="user-search" value="{{ search }}"
@@ -46,7 +49,7 @@
 
     <div class="messages-placeholder">
         <div class="messages-placeholder-inner">
-            <div class="empty-icon">💬</div>
+            <div class="messages-placeholder-icon">💬</div>
             <h2>{% if admins_only %}Выберите администратора{% else %}Выберите пользователя{% endif %}</h2>
             <p>{% if admins_only %}Напишите администратору сайта{% else %}Выберите собеседника из списка слева{% endif %}</p>
             {% if g.user.is_admin %}

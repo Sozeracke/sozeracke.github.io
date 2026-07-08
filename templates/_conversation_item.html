@@ -52,7 +52,8 @@
                    value="{{ request.path }}{% if request.query_string %}?{{ request.query_string }}{% endif %}">
             <button type="submit"
                     class="conversation-pin-btn {% if contact.is_pinned %}is-pinned{% endif %}"
-                    title="{% if contact.is_pinned %}Открепить{% else %}Закрепить{% endif %}">📌</button>
+                    title="{% if contact.is_pinned %}Открепить{% else %}Закрепить{% endif %}"
+                    aria-label="{% if contact.is_pinned %}Открепить диалог{% else %}Закрепить диалог{% endif %}">📌</button>
         </form>
     {% endif %}
 </div>

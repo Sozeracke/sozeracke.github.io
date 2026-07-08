@@ -7,7 +7,10 @@
 <div class="messages-layout">
     <aside class="messages-sidebar">
         <div class="messages-sidebar-header">
-            <a href="{{ url_for('messages_inbox') }}" class="back-link">← Сообщения</a>
+            <div class="messages-title-block messages-title-block--compact">
+                <a href="{{ url_for('messages_inbox') }}" class="back-link">← Сообщения</a>
+                <span class="messages-eyebrow">Диалоги</span>
+            </div>
             {% if g.user.is_admin %}
                 <input type="text" id="user-search" class="user-search-input"
                        placeholder="Поиск по имени..." autocomplete="off">
@@ -29,7 +32,7 @@
                 {% from '_avatar.html' import user_avatar with context %}
                 {{ user_avatar(partner.username, partner.avatar, 'sm', '', partner.id) }}
             </div>
-            <div>
+            <div class="chat-header-info">
                 <div class="chat-header-name">
                     <strong class="user-name-with-level">
                         {{ partner.username }}
@@ -69,9 +72,14 @@
         </div>
 
         <form method="POST" class="chat-input-form" id="chat-form">
-            <textarea name="content" id="chat-input" rows="2" required
-                      placeholder="Введите сообщение..." maxlength="2000"></textarea>
-            <button type="submit" class="btn btn-primary">Отправить</button>
+            <div class="chat-input-shell">
+                <textarea name="content" id="chat-input" rows="1" required
+                          placeholder="Напишите сообщение..." maxlength="2000"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary chat-send-btn">
+                <span aria-hidden="true">↗</span>
+                <span>Отправить</span>
+            </button>
         </form>
     </div>
 </div>
@@ -166,10 +174,21 @@
     scrollToBottom();
     setInterval(poll, 3000);
 
-    document.getElementById('chat-input').addEventListener('keydown', function(e) {
+    const chatInput = document.getElementById('chat-input');
+    const chatForm = document.getElementById('chat-form');
+
+    function resizeChatInput() {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+    }
+
+    chatInput.addEventListener('input', resizeChatInput);
+    resizeChatInput();
+
+    chatInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            document.getElementById('chat-form').submit();
+            chatForm.submit();
         }
     });
 })();
