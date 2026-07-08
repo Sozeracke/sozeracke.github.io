@@ -122,7 +122,8 @@ body::after {
     will-change: transform;
 }
 
-body > :not(.lightbox) {
+body > main,
+body > footer {
     position: relative;
     z-index: 1;
 }
