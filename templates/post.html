@@ -2,13 +2,21 @@
 
 {% block title %}{{ post.title }} — {{ site_name }}{% endblock %}
 
-{% block head %}
+{% block seo %}
     {% set og_image = post_cover(post) %}
     {% set og_description = (post.content | post_excerpt)[:200] %}
+    <meta name="description" content="{{ og_description }}">
+    <link rel="canonical" href="{{ public_url }}{{ url_for('view_post', post_id=post.id) }}">
+    <meta name="theme-color" content="#101114">
+    <meta property="og:site_name" content="{{ site_name }}">
     <meta property="og:type" content="article">
     <meta property="og:title" content="{{ post.title }}">
     <meta property="og:description" content="{{ og_description }}">
     <meta property="og:url" content="{{ public_url }}{{ url_for('view_post', post_id=post.id) }}">
+    <meta property="article:published_time" content="{{ post.published_at or post.created_at }}">
+    {% if post.updated_at %}
+        <meta property="article:modified_time" content="{{ post.updated_at }}">
+    {% endif %}
     {% if og_image %}
         <meta property="og:image" content="{{ absolute_media_url(og_image) }}">
     {% endif %}

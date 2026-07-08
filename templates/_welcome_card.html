@@ -31,6 +31,21 @@
         Читайте свежие материалы, возвращайтесь к полезным заметкам и общайтесь с участниками сообщества.
     </p>
 
+    <div class="welcome-stats" aria-label="Статистика сообщества">
+        <span class="welcome-stat">
+            <strong>{{ posts|length }}</strong>
+            <small>постов</small>
+        </span>
+        <span class="welcome-stat">
+            <strong>{{ categories|length }}</strong>
+            <small>категорий</small>
+        </span>
+        <span class="welcome-stat">
+            <strong>{{ tags|length }}</strong>
+            <small>тегов</small>
+        </span>
+    </div>
+
     <div class="welcome-actions">
         <a href="#hero-search" class="welcome-action-btn">
             <span class="welcome-action-icon" aria-hidden="true">🔍</span>

@@ -1,0 +1,21 @@
+{
+  "name": "Приватный форум",
+  "short_name": "Форум",
+  "description": "Закрытый блог Sozeracke с гайдами, заметками и обсуждениями сообщества.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101114",
+  "theme_color": "#101114",
+  "icons": [
+    {
+      "src": "/static/site-logo-256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/site-logo.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}

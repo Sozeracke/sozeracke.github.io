@@ -4,6 +4,7 @@ import sys
 import uuid
 from datetime import datetime
 from functools import wraps
+from xml.sax.saxutils import escape as xml_escape
 
 from flask import (
     Flask,
@@ -76,6 +77,10 @@ OLD_DEFAULT_CATEGORIES = [
 SITE_OWNER = os.environ.get("SITE_OWNER", "Sozeracke")
 SITE_NAME = os.environ.get("SITE_NAME", "Приватный форум")
 SITE_BYLINE = os.environ.get("SITE_BYLINE", "by sozeracke")
+SITE_DESCRIPTION = os.environ.get(
+    "SITE_DESCRIPTION",
+    "Закрытый блог Sozeracke с гайдами, заметками и обсуждениями сообщества.",
+)
 ONLINE_THRESHOLD_SECONDS = 300
 
 USER_LEVELS = [
@@ -1129,6 +1134,22 @@ def health():
     })
 
 
+@app.after_request
+def add_response_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), payment=()",
+    )
+    if request.endpoint == "static":
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.endpoint == "serve_media":
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    return response
+
+
 @app.before_request
 def before_request():
     if IS_RENDER and not database.USE_POSTGRES:
@@ -1171,6 +1192,9 @@ def before_request():
 
 @app.context_processor
 def inject_globals():
+    canonical_path = request.path or "/"
+    if canonical_path != "/" and canonical_path.endswith("/"):
+        canonical_path = canonical_path.rstrip("/")
     return {
         "is_admin": is_admin(),
         "unread_messages": getattr(g, "unread_messages", 0),
@@ -1178,6 +1202,8 @@ def inject_globals():
         "public_url": app.config["PUBLIC_URL"],
         "site_name": SITE_NAME,
         "site_byline": SITE_BYLINE,
+        "site_description": SITE_DESCRIPTION,
+        "canonical_url": app.config["PUBLIC_URL"].rstrip("/") + canonical_path,
         "media_url": media_url,
         "post_cover": post_cover_filename,
         "absolute_media_url": absolute_media_url,
@@ -1193,6 +1219,84 @@ def inject_globals():
         "pending_proposals": getattr(g, "pending_proposals", 0),
         "proposal_status_label": proposal_status_label,
     }
+
+
+def public_absolute_url(path):
+    return app.config["PUBLIC_URL"].rstrip("/") + path
+
+
+def sitemap_date(value):
+    dt = parse_iso_datetime(value)
+    if dt:
+        return dt.date().isoformat()
+    return (value or datetime.now().isoformat())[:10]
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    sitemap_url = public_absolute_url(url_for("sitemap_xml"))
+    body = f"User-agent: *\nAllow: /\nSitemap: {sitemap_url}\n"
+    return Response(body, mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    db = get_db()
+    cutoff = publication_cutoff()
+    urls = [
+        (public_absolute_url(url_for("index")), "daily", datetime.now().date().isoformat()),
+    ]
+
+    categories = get_categories()
+    for category in categories:
+        if category["post_count"] > 0:
+            urls.append((
+                public_absolute_url(url_for("category_posts", slug=category["slug"])),
+                "weekly",
+                datetime.now().date().isoformat(),
+            ))
+
+    tags = get_popular_tags(limit=30)
+    for tag in tags:
+        urls.append((
+            public_absolute_url(url_for("tag_posts", slug=tag["slug"])),
+            "weekly",
+            datetime.now().date().isoformat(),
+        ))
+
+    posts = db.execute(
+        f"""
+        SELECT id, created_at, updated_at, published_at
+        FROM posts
+        WHERE is_private = 0
+          AND {post_is_public_sql("posts")}
+        ORDER BY COALESCE(published_at, created_at) DESC
+        LIMIT 1000
+        """,
+        (cutoff,),
+    ).fetchall()
+    for post in posts:
+        urls.append((
+            public_absolute_url(url_for("view_post", post_id=post["id"])),
+            "monthly",
+            sitemap_date(post.get("updated_at") or post.get("published_at") or post["created_at"]),
+        ))
+
+    items = [
+        "    <url>"
+        f"<loc>{xml_escape(loc)}</loc>"
+        f"<lastmod>{xml_escape(lastmod)}</lastmod>"
+        f"<changefreq>{changefreq}</changefreq>"
+        "</url>"
+        for loc, changefreq, lastmod in urls
+    ]
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(items)
+        + "\n</urlset>\n"
+    )
+    return Response(xml, mimetype="application/xml; charset=utf-8")
 
 
 def render_posts_page(category_slug=None, tag_slug=None, search=None):

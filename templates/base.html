@@ -4,7 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
+    {% block seo %}
+        <meta name="description" content="{{ site_description }}">
+        <link rel="canonical" href="{{ canonical_url }}">
+        <meta name="theme-color" content="#101114">
+        <meta property="og:site_name" content="{{ site_name }}">
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="{{ site_name }}">
+        <meta property="og:description" content="{{ site_description }}">
+        <meta property="og:url" content="{{ canonical_url }}">
+        <meta property="og:image" content="{{ public_url }}{{ url_for('static', filename='site-logo-256.png') }}">
+        <meta name="twitter:card" content="summary">
+    {% endblock %}
     <link rel="icon" href="{{ url_for('static', filename='site-logo.png') }}" type="image/png">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     <script>
         (function () {
             var theme = localStorage.getItem("site-theme");
@@ -14,10 +27,12 @@
         })();
     </script>
     {% block head %}{% endblock %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=29">
-    <script src="{{ url_for('static', filename='theme.js') }}?v=18" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=30">
+    <script src="{{ url_for('static', filename='theme.js') }}?v=19" defer></script>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Перейти к содержимому</a>
+    <div class="reading-progress" data-reading-progress aria-hidden="true"></div>
     <nav class="navbar">
         <div class="container nav-inner">
             <a href="{{ url_for('index') }}" class="logo">
@@ -84,7 +99,7 @@
         </div>
     </nav>
 
-    <main class="{% block main_class %}container{% endblock %}">
+    <main id="main-content" class="{% block main_class %}container{% endblock %}">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages" id="flash-messages">

@@ -122,6 +122,26 @@
         }
     });
 
+    var readingProgress = document.querySelector("[data-reading-progress]");
+    var article = document.querySelector(".post-full");
+
+    function updateReadingProgress() {
+        if (!readingProgress || !article) {
+            return;
+        }
+        var start = article.offsetTop;
+        var end = article.offsetTop + article.scrollHeight - window.innerHeight;
+        var progress = end > start ? (window.scrollY - start) / (end - start) : 0;
+        progress = Math.max(0, Math.min(1, progress));
+        readingProgress.style.transform = "scaleX(" + progress + ")";
+    }
+
+    if (readingProgress && article) {
+        updateReadingProgress();
+        window.addEventListener("scroll", updateReadingProgress, { passive: true });
+        window.addEventListener("resize", updateReadingProgress);
+    }
+
     document.querySelectorAll(".like-form").forEach(function (form) {
         form.addEventListener("submit", function (event) {
             event.preventDefault();
