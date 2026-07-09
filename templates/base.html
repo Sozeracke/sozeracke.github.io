@@ -13,8 +13,8 @@
         <meta property="og:title" content="{{ site_name }}">
         <meta property="og:description" content="{{ site_description }}">
         <meta property="og:url" content="{{ canonical_url }}">
-        <meta property="og:image" content="{{ public_url }}{{ url_for('static', filename='site-logo-256.png') }}">
-        <meta name="twitter:card" content="summary">
+        <meta property="og:image" content="{{ public_url }}{{ url_for('static', filename='og.png') }}">
+        <meta name="twitter:card" content="summary_large_image">
     {% endblock %}
     <link rel="icon" href="{{ url_for('static', filename='site-logo.png') }}" type="image/png">
     <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
@@ -27,7 +27,7 @@
         })();
     </script>
     {% block head %}{% endblock %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=39">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=40">
     <script src="{{ url_for('static', filename='theme.js') }}?v=20" defer></script>
 </head>
 <body>

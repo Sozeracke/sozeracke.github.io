@@ -1,9 +1,10 @@
-<section class="welcome-card" id="welcome-card">
+<section class="welcome-card welcome-card--editorial" id="welcome-card">
     <button type="button" class="welcome-close" data-welcome-close aria-label="Закрыть">×</button>
 
     <header class="welcome-header">
-        <h2 class="welcome-title">Добро пожаловать на {{ site_name }}</h2>
-        <p class="welcome-subtitle">Закрытый блог, гайды и спокойные обсуждения</p>
+        <p class="welcome-eyebrow"><span></span> Закрытое сообщество</p>
+        <h2 class="welcome-title">Материалы, к которым хочется <em>возвращаться.</em></h2>
+        <p class="welcome-subtitle">Гайды, заметки и неспешные разговоры о технологиях — без лишнего шума, в своём кругу.</p>
     </header>
 
     {% if g.user %}
@@ -26,11 +27,6 @@
         </div>
     {% endif %}
 
-    <p class="welcome-text">
-        <span class="welcome-text-mark" aria-hidden="true">›</span>
-        Читайте свежие материалы, возвращайтесь к полезным заметкам и общайтесь с участниками сообщества.
-    </p>
-
     <div class="welcome-stats" aria-label="Статистика сообщества">
         <span class="welcome-stat">
             <strong>{{ posts|length }}</strong>
@@ -48,26 +44,21 @@
 
     <div class="welcome-actions">
         <a href="#hero-search" class="welcome-action-btn">
-            <span class="welcome-action-icon" aria-hidden="true">🔍</span>
-            <span>Найти материал</span>
+            <span>Смотреть материалы</span><b aria-hidden="true">↓</b>
         </a>
         {% if g.user %}
             <a href="{{ url_for('messages_inbox') }}" class="welcome-action-btn">
-                <span class="welcome-action-icon" aria-hidden="true">💬</span>
-                <span>Открыть сообщения</span>
+                <span>Открыть сообщения</span><b aria-hidden="true">↗</b>
             </a>
             <a href="{{ url_for('edit_profile') }}" class="welcome-action-btn">
-                <span class="welcome-action-icon" aria-hidden="true">⚙️</span>
-                <span>Настроить профиль</span>
+                <span>Настроить профиль</span><b aria-hidden="true">→</b>
             </a>
         {% else %}
             <a href="{{ url_for('register') }}" class="welcome-action-btn">
-                <span class="welcome-action-icon" aria-hidden="true">💬</span>
-                <span>Создать аккаунт</span>
+                <span>Создать аккаунт</span><b aria-hidden="true">→</b>
             </a>
             <a href="{{ url_for('login') }}" class="welcome-action-btn">
-                <span class="welcome-action-icon" aria-hidden="true">⚙️</span>
-                <span>Войти в аккаунт</span>
+                <span>Войти в аккаунт</span><b aria-hidden="true">↗</b>
             </a>
         {% endif %}
     </div>
@@ -88,6 +79,7 @@
                 </span>
             </div>
             <div class="welcome-post-body">
+                <span class="welcome-post-label">СВЕЖИЙ МАТЕРИАЛ</span>
                 <span class="welcome-post-title">{{ featured_post.title }}</span>
                 <span class="welcome-post-date">{{ (featured_post.published_at or featured_post.created_at) | format_date_ru }}</span>
             </div>
@@ -97,7 +89,4 @@
         </a>
     {% endif %}
 
-    <a href="#posts-section" class="btn btn-primary btn-full welcome-cta" data-welcome-close-soft>
-        Смотреть последние посты
-    </a>
 </section>
