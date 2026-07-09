@@ -39,31 +39,6 @@
         }
     });
 
-    var welcomeCard = document.getElementById("welcome-card");
-    if (welcomeCard) {
-        var welcomeKey = "welcome-dismissed";
-
-        function dismissWelcomeCard() {
-            welcomeCard.classList.add("is-hidden");
-            localStorage.setItem(welcomeKey, "1");
-        }
-
-        if (localStorage.getItem(welcomeKey) === "1") {
-            welcomeCard.classList.add("is-hidden");
-        }
-
-        document.addEventListener("click", function (event) {
-            if (event.target.closest("[data-welcome-close]")) {
-                event.preventDefault();
-                dismissWelcomeCard();
-                return;
-            }
-            if (event.target.closest("[data-welcome-close-soft]")) {
-                dismissWelcomeCard();
-            }
-        });
-    }
-
     document.querySelectorAll("[data-flash]").forEach(function (flash) {
         var closeBtn = flash.querySelector("[data-flash-close]");
         var hideFlash = function () {
