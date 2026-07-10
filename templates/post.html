@@ -7,7 +7,7 @@
     {% set og_description = (post.content | post_excerpt)[:200] %}
     <meta name="description" content="{{ og_description }}">
     <link rel="canonical" href="{{ public_url }}{{ url_for('view_post', post_id=post.id) }}">
-    <meta name="theme-color" content="#101114">
+    <meta name="theme-color" content="#090c12">
     <meta property="og:site_name" content="{{ site_name }}">
     <meta property="og:type" content="article">
     <meta property="og:title" content="{{ post.title }}">
@@ -26,7 +26,15 @@
 {% block content %}
 <article class="post-full">
     <header class="post-full-header">
-        <a href="{{ url_for('index') }}" class="back-link">← Назад к постам</a>
+        <nav class="post-breadcrumb" aria-label="Хлебные крошки">
+            <a href="{{ url_for('index') }}">Библиотека</a>
+            <span aria-hidden="true">/</span>
+            {% if post.category_name %}
+                <a href="{{ url_for('category_posts', slug=post.category_slug) }}">{{ post.category_name }}</a>
+            {% else %}
+                <span>Материал</span>
+            {% endif %}
+        </nav>
         {% if is_scheduled_preview %}
             <div class="scheduled-banner">
                 Запланированная публикация: {{ post.published_at[:16].replace('T', ' ') }}.
@@ -40,16 +48,19 @@
                 {% endif %}
             </div>
         {% endif %}
+        <p class="post-issue"><span>SOZERACKE</span> / Авторский материал</p>
         <h1>{{ post.title }}</h1>
         {% if is_post_pinned(post) %}
             <span class="badge badge-pinned post-pinned-badge">📌 Закреплён</span>
         {% endif %}
         <div class="post-meta">
-            <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
+            <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author post-author--with-avatar">
+                {% from '_avatar.html' import user_avatar with context %}
+                {{ user_avatar(post.username, none, 'xs', '', post.author_id) }}
                 <span class="user-name-with-level">{{ post.username }}</span>
             </a>
             <span class="post-separator">·</span>
-            <time class="post-date">{{ (post.published_at or post.created_at) | format_date_ru }}</time>
+            <time class="post-date" datetime="{{ post.published_at or post.created_at }}">{{ (post.published_at or post.created_at) | format_date_ru }}</time>
             <span class="post-separator">·</span>
             <span class="post-reading-time">{{ post.content | reading_time }} мин чтения</span>
             {% if post.updated_at and post.updated_at != post.created_at %}
@@ -66,13 +77,29 @@
     </header>
 
     {% if post.image %}
-        <img src="{{ media_url(post.image) }}"
-             alt="" class="post-cover-image lightbox-image" tabindex="0" role="button">
+        <figure class="post-cover-figure">
+            <img src="{{ media_url(post.image) }}"
+                 alt="Обложка материала «{{ post.title }}»" class="post-cover-image lightbox-image"
+                 tabindex="0" role="button" decoding="async">
+            <figcaption>Иллюстрация к материалу · нажмите, чтобы открыть крупнее</figcaption>
+        </figure>
     {% endif %}
 
     <div class="post-full-content">
         {{ post.content | render_post_content }}
     </div>
+
+    <aside class="post-author-card" aria-label="Об авторе">
+        {{ user_avatar(post.username, none, 'md', '', post.author_id) }}
+        <div>
+            <span class="post-author-card-label">Автор материала</span>
+            <a href="{{ url_for('user_profile', username=post.username) }}">{{ post.username }}</a>
+            <p>Пишет о технологиях, инструментах и личном цифровом опыте.</p>
+        </div>
+        {% if g.user and g.user.id != post.author_id %}
+            <a href="{{ url_for('chat_with_user', username=post.username) }}" class="btn btn-ghost btn-sm">Написать</a>
+        {% endif %}
+    </aside>
 
     <div class="post-engagement-bar">
         {% if g.user and not is_scheduled_preview %}
@@ -87,6 +114,14 @@
             <span class="like-count-display">❤️ {{ post.like_count|default(0) }}</span>
         {% endif %}
         <a href="#comments-section" class="comment-count-display comment-count-link">💬 {{ comments|length }}</a>
+        <button type="button" class="share-card-button post-share-button"
+                data-share-post
+                data-share-url="{{ url_for('view_post', post_id=post.id, _external=True) }}"
+                data-share-title="{{ post.title }}"
+                aria-label="Поделиться материалом {{ post.title }}">
+            <span class="share-card-icon" aria-hidden="true">↗</span>
+            <span class="share-card-label">Поделиться</span>
+        </button>
     </div>
 
     <div class="post-bottom-actions">

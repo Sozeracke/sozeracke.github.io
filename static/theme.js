@@ -12,10 +12,14 @@
 
     function applyTheme(theme) {
         root.setAttribute("data-theme", theme);
+        var themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {
+            themeColor.setAttribute("content", theme === "light" ? "#f2efe8" : "#090c12");
+        }
         document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
             var isLight = theme === "light";
             btn.setAttribute("aria-pressed", isLight ? "true" : "false");
-            btn.setAttribute("aria-label", isLight ? "Светлая тема" : "Тёмная тема");
+            btn.setAttribute("aria-label", isLight ? "Переключить на тёмную тему" : "Переключить на светлую тему");
             var icon = btn.querySelector(".theme-toggle-icon");
             if (icon) {
                 icon.textContent = isLight ? "☀️" : "🌙";
@@ -39,6 +43,66 @@
         }
     });
 
+    var navMenuToggle = document.querySelector("[data-nav-menu-toggle]");
+    var navMenu = document.querySelector("[data-nav-menu]");
+
+    function setNavMenu(open) {
+        if (!navMenuToggle || !navMenu) return;
+        navMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        navMenu.classList.toggle("is-open", open);
+        document.body.classList.toggle("nav-menu-open", open);
+    }
+
+    if (navMenuToggle && navMenu) {
+        navMenuToggle.addEventListener("click", function () {
+            setNavMenu(navMenuToggle.getAttribute("aria-expanded") !== "true");
+        });
+
+        navMenu.addEventListener("click", function (event) {
+            if (event.target.closest("a")) setNavMenu(false);
+        });
+
+        document.addEventListener("click", function (event) {
+            if (navMenu.classList.contains("is-open") &&
+                !navMenu.contains(event.target) &&
+                !navMenuToggle.contains(event.target)) {
+                setNavMenu(false);
+            }
+        });
+    }
+
+    var catalogSidebar = document.querySelector("#catalog-sidebar");
+    var catalogOpen = document.querySelector("[data-catalog-open]");
+    var catalogCloseButtons = document.querySelectorAll("[data-catalog-close]");
+    var catalogReturnFocus = null;
+
+    function setCatalog(open) {
+        if (!catalogSidebar || !catalogOpen) return;
+        catalogSidebar.classList.toggle("is-open", open);
+        document.body.classList.toggle("catalog-open", open);
+        catalogOpen.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) {
+            catalogReturnFocus = document.activeElement;
+            var closeButton = catalogSidebar.querySelector("[data-catalog-close]");
+            if (closeButton) closeButton.focus();
+        } else if (catalogReturnFocus && catalogReturnFocus.focus) {
+            catalogReturnFocus.focus();
+            catalogReturnFocus = null;
+        }
+    }
+
+    if (catalogSidebar && catalogOpen) {
+        catalogOpen.addEventListener("click", function () { setCatalog(true); });
+        catalogCloseButtons.forEach(function (button) {
+            button.addEventListener("click", function () { setCatalog(false); });
+        });
+        catalogSidebar.addEventListener("click", function (event) {
+            if (event.target.closest("a") && window.matchMedia("(max-width: 900px)").matches) {
+                setCatalog(false);
+            }
+        });
+    }
+
     document.querySelectorAll("[data-flash]").forEach(function (flash) {
         var closeBtn = flash.querySelector("[data-flash-close]");
         var hideFlash = function () {
@@ -58,6 +122,9 @@
     var lightbox = document.createElement("div");
     lightbox.className = "lightbox";
     lightbox.hidden = true;
+    lightbox.setAttribute("role", "dialog");
+    lightbox.setAttribute("aria-modal", "true");
+    lightbox.setAttribute("aria-label", "Просмотр изображения");
     lightbox.innerHTML =
         '<button type="button" class="lightbox-close" aria-label="Закрыть">×</button>' +
         '<img src="" alt="" class="lightbox-image">';
@@ -65,25 +132,33 @@
 
     var lightboxImg = lightbox.querySelector(".lightbox-image");
     var lightboxClose = lightbox.querySelector(".lightbox-close");
+    var lightboxReturnFocus = null;
 
-    function openLightbox(src) {
+    function openLightbox(src, alt, source) {
         if (!src || !lightboxImg) return;
         lightboxImg.src = src;
+        lightboxImg.alt = alt || "";
+        lightboxReturnFocus = source || document.activeElement;
         lightbox.hidden = false;
         document.body.classList.add("lightbox-open");
+        if (lightboxClose) lightboxClose.focus();
     }
 
     function closeLightbox() {
         lightbox.hidden = true;
         document.body.classList.remove("lightbox-open");
         if (lightboxImg) lightboxImg.src = "";
+        if (lightboxReturnFocus && lightboxReturnFocus.focus) {
+            lightboxReturnFocus.focus();
+        }
+        lightboxReturnFocus = null;
     }
 
     document.addEventListener("click", function (event) {
         var image = event.target.closest(".lightbox-image");
         if (image && !image.closest(".lightbox") && image.src) {
             event.preventDefault();
-            openLightbox(image.src);
+            openLightbox(image.src, image.alt, image);
             return;
         }
         if (event.target === lightbox || event.target === lightboxClose) {
@@ -94,6 +169,18 @@
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && !lightbox.hidden) {
             closeLightbox();
+            return;
+        }
+        if (event.key === "Escape") {
+            setNavMenu(false);
+            setCatalog(false);
+            return;
+        }
+        var image = event.target.closest && event.target.closest(".lightbox-image");
+        if (image && !image.closest(".lightbox") &&
+            (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            openLightbox(image.src, image.alt, image);
         }
     });
 

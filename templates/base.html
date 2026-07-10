@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
     {% block seo %}
         <meta name="description" content="{{ site_description }}">
         <link rel="canonical" href="{{ canonical_url }}">
-        <meta name="theme-color" content="#101114">
+        <meta name="theme-color" content="#090c12">
         <meta property="og:site_name" content="{{ site_name }}">
         <meta property="og:type" content="website">
         <meta property="og:title" content="{{ site_name }}">
@@ -27,50 +28,63 @@
         })();
     </script>
     {% block head %}{% endblock %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=40">
-    <script src="{{ url_for('static', filename='theme.js') }}?v=21" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=41">
+    <link rel="stylesheet" href="{{ url_for('static', filename='premium.css') }}?v=1">
+    <script src="{{ url_for('static', filename='theme.js') }}?v=22" defer></script>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Перейти к содержанию</a>
     <div class="reading-progress" data-reading-progress aria-hidden="true"></div>
-    <nav class="navbar">
+    <nav class="navbar" aria-label="Основная навигация">
         <div class="container nav-inner">
-            <a href="{{ url_for('index') }}" class="logo">
-                <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" class="logo-image">
+            <a href="{{ url_for('index') }}" class="logo" aria-label="{{ site_name }} — на главную">
+                <span class="logo-mark">
+                    <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" class="logo-image" width="44" height="44">
+                </span>
                 <span class="logo-text">
                     <span class="logo-title">{{ site_name }}</span>
                     <span class="logo-byline">{{ site_byline }}</span>
                 </span>
             </a>
 
+            <span class="nav-edition" aria-hidden="true">DIGITAL JOURNAL</span>
+            <div class="nav-spacer"></div>
+
             <button type="button" class="theme-toggle" data-theme-toggle
-                    aria-pressed="false" aria-label="Переключить тему">
+                    aria-pressed="false" aria-label="Переключить на светлую тему">
                 <span class="theme-toggle-icon" aria-hidden="true">🌙</span>
             </button>
 
             {% if g.user %}
-                <div class="nav-spacer"></div>
+                {% from '_avatar.html' import user_avatar with context %}
+                <button type="button" class="nav-menu-toggle" data-nav-menu-toggle
+                        aria-controls="nav-user-menu" aria-expanded="false">
+                    {{ user_avatar(g.user.username, g.user.avatar, 'xs', '', g.user.id) }}
+                    <span class="nav-menu-label">{{ g.user.username }}</span>
+                    <span class="nav-menu-chevron" aria-hidden="true">⌄</span>
+                </button>
 
-                <div class="nav-toolbar">
-                    <a href="{{ url_for('messages_inbox') }}" class="nav-messages-btn">
-                        <span class="nav-messages-icon" aria-hidden="true">💬</span>
-                        <span class="nav-messages-label">Сообщения</span>
-                        {% if unread_messages %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
-                    </a>
-                    {% if g.user.is_admin %}
-                        <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
-                        <a href="{{ url_for('admin_proposals') }}" class="nav-messages-btn">
-                            <span class="nav-messages-label">Заявки</span>
-                            {% if pending_proposals %}<span class="nav-badge">{{ pending_proposals }}</span>{% endif %}
+                <div class="nav-user-menu" id="nav-user-menu" data-nav-menu>
+                    <div class="nav-toolbar">
+                        <a href="{{ url_for('messages_inbox') }}" class="nav-messages-btn">
+                            <span class="nav-messages-icon" aria-hidden="true">↗</span>
+                            <span class="nav-messages-label">Сообщения</span>
+                            {% if unread_messages %}<span class="nav-badge">{{ unread_messages }}</span>{% endif %}
                         </a>
-                        <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
-                    {% else %}
-                        <a href="{{ url_for('propose_post') }}" class="btn btn-primary btn-sm">Предложить пост</a>
-                    {% endif %}
-                </div>
+                        {% if g.user.is_admin %}
+                            <a href="{{ url_for('admin_panel') }}" class="btn btn-ghost btn-sm">Панель</a>
+                            <a href="{{ url_for('admin_proposals') }}" class="nav-messages-btn">
+                                <span class="nav-messages-label">Заявки</span>
+                                {% if pending_proposals %}<span class="nav-badge">{{ pending_proposals }}</span>{% endif %}
+                            </a>
+                            <a href="{{ url_for('create_post') }}" class="btn btn-primary btn-sm">Новый пост</a>
+                        {% else %}
+                            <a href="{{ url_for('propose_post') }}" class="btn btn-primary btn-sm">Предложить пост</a>
+                        {% endif %}
+                    </div>
 
-                <div class="nav-account">
-                    <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
-                        {% from '_avatar.html' import user_avatar with context %}
+                    <div class="nav-account">
+                        <a href="{{ url_for('user_profile', username=g.user.username) }}" class="nav-user">
                         {{ user_avatar(g.user.username, g.user.avatar, 'xs', '', g.user.id) }}
                         <span class="nav-user-info">
                             <span class="nav-user-identity">
@@ -85,14 +99,17 @@
                                 <span class="badge badge-admin nav-admin-badge">админ</span>
                             {% endif %}
                         </span>
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm nav-logout">Выйти</a>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm nav-logout">Выйти</a>
+                    </div>
                 </div>
             {% else %}
-                <div class="nav-spacer"></div>
                 <div class="nav-auth">
                     <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm">Войти</a>
-                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Регистрация</a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">
+                        <span class="nav-register-full">Регистрация</span>
+                        <span class="nav-register-short">Вступить</span>
+                    </a>
                 </div>
             {% endif %}
         </div>
@@ -117,18 +134,42 @@
 
     <footer class="footer">
         <div class="container footer-inner">
-            <div class="footer-brand">
-                <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" class="footer-logo">
-                <div class="footer-brand-text">
-                    <span class="footer-title">{{ site_name }}</span>
-                    <span class="footer-byline">{{ site_byline }}</span>
+            <div class="footer-topline">
+                <div class="footer-brand">
+                    <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" class="footer-logo" width="40" height="40">
+                    <div class="footer-brand-text">
+                        <span class="footer-title">{{ site_name }}</span>
+                        <span class="footer-byline">{{ site_byline }}</span>
+                    </div>
+                </div>
+
+                <p class="footer-manifesto">
+                    Практические материалы о технологиях и цифровой жизни — спокойно, честно, по делу.
+                </p>
+
+                <span class="footer-status"><i aria-hidden="true"></i> Сообщество онлайн</span>
+            </div>
+
+            <div class="footer-bottomline">
+                <nav class="footer-nav" aria-label="Навигация в подвале">
+                    <a href="{{ url_for('index') }}">Материалы</a>
+                    {% if g.user %}
+                        <a href="{{ url_for('messages_inbox') }}">Сообщения</a>
+                        <a href="{{ url_for('user_profile', username=g.user.username) }}">Профиль</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}">Войти</a>
+                        <a href="{{ url_for('register') }}">Вступить</a>
+                    {% endif %}
+                </nav>
+
+                <div class="footer-domains">
+                    <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
+                    <span class="footer-separator">/</span>
+                    <a href="https://sozeracke.github.io" class="footer-domain" target="_blank" rel="noopener">
+                        sozeracke.github.io
+                    </a>
                 </div>
             </div>
-            <a href="{{ public_url }}" class="footer-domain">sozeracke-blog.onrender.com</a>
-            <span class="footer-separator">·</span>
-            <a href="https://sozeracke.github.io" class="footer-domain" target="_blank" rel="noopener">
-                sozeracke.github.io
-            </a>
         </div>
     </footer>
 </body>

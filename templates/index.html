@@ -7,67 +7,90 @@
 {% block content %}
 <div class="catalog-layout">
     {% include "_catalog_sidebar.html" %}
+    <button type="button" class="catalog-scrim" data-catalog-close aria-label="Закрыть каталог" aria-hidden="true" tabindex="-1"></button>
 
     <div class="catalog-center">
-    <div class="main-content">
-        {% if show_welcome %}
-            {% include "_welcome_card.html" %}
-        {% endif %}
+        <div class="catalog-mobile-bar">
+            <button type="button" class="catalog-mobile-trigger" data-catalog-open
+                    aria-controls="catalog-sidebar" aria-expanded="false">
+                <span class="catalog-trigger-icon" aria-hidden="true"><i></i><i></i></span>
+                <span>Каталог</span>
+                <span class="catalog-trigger-meta">
+                    {% if active_category %}{{ active_category.name }}{% elif active_tag %}#{{ active_tag.name | tag_display }}{% else %}Все материалы{% endif %}
+                </span>
+            </button>
+        </div>
 
-        <section class="hero hero-compact" id="hero-search">
+        <div class="main-content">
             {% if show_welcome %}
+                {% include "_welcome_card.html" %}
+            {% endif %}
+
+            <section class="library-section" id="hero-search" aria-labelledby="library-title">
                 <div class="feed-intro">
                     <div>
-                        <p class="feed-kicker"><span></span> Библиотека сообщества</p>
-                        <h2 class="section-title">Свежие материалы</h2>
-                    </div>
-                    <span class="feed-count">{{ posts|length }} в подборке</span>
-                </div>
-            {% else %}
-                <h1>{{ page_title }}</h1>
-                {% if page_subtitle %}
-                    <p>{{ page_subtitle }}</p>
-                {% endif %}
-                {% if active_category or active_tag %}
-                    <a href="{{ url_for('index') }}" class="filter-reset">← Все посты</a>
-                {% endif %}
-            {% endif %}
-            <form action="{{ url_for('search') }}" method="GET" class="hero-search">
-                <input type="search" name="q" value="{{ search_query or '' }}"
-                       placeholder="Поиск по постам..." class="hero-search-input" autocomplete="off">
-                <button type="submit" class="btn btn-primary btn-sm">Найти</button>
-            </form>
-        </section>
-
-        <section id="posts-section">
-        {% if posts %}
-            <div class="posts-grid">
-                {% for post in posts %}
-                    {{ post_card(post, loop.index0) }}
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">📝</div>
-                <h2>Постов не найдено</h2>
-                {% if search_query or active_category or active_tag %}
-                    <p>
-                        {% if search_query %}
-                            По запросу «{{ search_query }}» ничего не найдено.
+                        <p class="feed-kicker"><span>01</span> Библиотека</p>
+                        {% if show_welcome %}
+                            <h2 class="section-title" id="library-title">Свежие материалы</h2>
                         {% else %}
-                            В этой подборке пока нет постов.
+                            <h1 class="section-title" id="library-title">{{ page_title }}</h1>
+                            {% if page_subtitle %}<p class="feed-subtitle">{{ page_subtitle }}</p>{% endif %}
                         {% endif %}
-                    </p>
-                {% endif %}
-        {% if not g.user %}
-            <a href="{{ url_for('register') }}" class="btn btn-primary">Создать аккаунт</a>
-        {% elif g.user.is_admin %}
-            <a href="{{ url_for('create_post') }}" class="btn btn-primary">Написать пост</a>
-        {% endif %}
-            </div>
-        {% endif %}
-        </section>
-    </div>
+                    </div>
+                    {% set posts_count = posts|length %}
+                    <span class="feed-count">
+                        {{ posts_count }}
+                        {% if posts_count % 10 == 1 and posts_count % 100 != 11 %}
+                            материал
+                        {% elif posts_count % 10 in [2, 3, 4] and posts_count % 100 not in [12, 13, 14] %}
+                            материала
+                        {% else %}
+                            материалов
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="feed-tools">
+                    <form action="{{ url_for('search') }}" method="GET" class="hero-search" role="search">
+                        <label for="post-search" class="visually-hidden">Поиск по материалам</label>
+                        <span class="search-glyph" aria-hidden="true"></span>
+                        <input type="search" id="post-search" name="q" value="{{ search_query or '' }}"
+                               placeholder="Найти материал" class="hero-search-input" autocomplete="off">
+                        <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+                    </form>
+                    {% if active_category or active_tag or search_query %}
+                        <a href="{{ url_for('index') }}" class="filter-reset">Сбросить фильтр <span aria-hidden="true">×</span></a>
+                    {% endif %}
+                </div>
+
+                <div id="posts-section">
+                    {% if posts %}
+                        <div class="posts-grid">
+                            {% for post in posts %}
+                                {{ post_card(post, loop.index0) }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-index" aria-hidden="true">00</div>
+                            <h2>Ничего не найдено</h2>
+                            <p>
+                                {% if search_query %}
+                                    По запросу «{{ search_query }}» пока нет материалов.
+                                {% else %}
+                                    В этой подборке пока нет публикаций.
+                                {% endif %}
+                            </p>
+                            {% if not g.user %}
+                                <a href="{{ url_for('register') }}" class="btn btn-primary">Вступить в сообщество</a>
+                            {% elif g.user.is_admin %}
+                                <a href="{{ url_for('create_post') }}" class="btn btn-primary">Написать материал</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
     </div>
 </div>
 {% endblock %}

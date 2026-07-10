@@ -75,11 +75,11 @@ OLD_DEFAULT_CATEGORIES = [
 ]
 
 SITE_OWNER = os.environ.get("SITE_OWNER", "Sozeracke")
-SITE_NAME = os.environ.get("SITE_NAME", "Приватный форум")
-SITE_BYLINE = os.environ.get("SITE_BYLINE", "by sozeracke")
+SITE_NAME = os.environ.get("SITE_NAME", "SOZERACKE")
+SITE_BYLINE = os.environ.get("SITE_BYLINE", "приватный форум")
 SITE_DESCRIPTION = os.environ.get(
     "SITE_DESCRIPTION",
-    "Закрытый блог Sozeracke с гайдами, заметками и обсуждениями сообщества.",
+    "Авторский цифровой журнал Sozeracke: практические гайды, заметки о технологиях и спокойные обсуждения без информационного шума.",
 )
 ONLINE_THRESHOLD_SECONDS = 300
 

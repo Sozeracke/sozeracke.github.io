@@ -1,4 +1,12 @@
 <aside class="catalog-sidebar" id="catalog-sidebar">
+    <div class="catalog-sidebar-head">
+        <div>
+            <span class="catalog-sidebar-index">INDEX</span>
+            <strong>Навигация</strong>
+        </div>
+        <button type="button" class="catalog-sidebar-close" data-catalog-close aria-label="Закрыть каталог">×</button>
+    </div>
+
     <div class="catalog-block">
         <h3>Категории</h3>
         <ul class="catalog-list">
@@ -49,4 +57,9 @@
             </div>
         </div>
     {% endif %}
+
+    <div class="catalog-note">
+        <span class="catalog-note-mark" aria-hidden="true"></span>
+        <p>Отобранные вручную материалы без бесконечной ленты и алгоритмического шума.</p>
+    </div>
 </aside>

@@ -1,90 +1,88 @@
-<section class="welcome-card welcome-card--editorial" id="welcome-card">
-    <header class="welcome-header">
-        <p class="welcome-eyebrow"><span></span> Закрытое сообщество</p>
-        <h2 class="welcome-title">Материалы, к которым хочется <em>возвращаться.</em></h2>
-        <p class="welcome-subtitle">Гайды, заметки и неспешные разговоры о технологиях — без лишнего шума, в своём кругу.</p>
-    </header>
+<section class="signal-hero" aria-labelledby="signal-title">
+    <div class="signal-hero-noise" aria-hidden="true"></div>
 
-    {% if g.user %}
-        <div class="welcome-user">
-            {% from '_avatar.html' import user_avatar with context %}
-            <div class="welcome-user-avatar">
-                {{ user_avatar(g.user.username, g.user.avatar, 'md', '', g.user.id) }}
+    <div class="signal-copy">
+        <p class="signal-kicker">
+            <span class="signal-live" aria-hidden="true"></span>
+            Авторский digital-журнал / 2026
+        </p>
+
+        {% if g.user %}
+            <div class="signal-user">
+                {% from '_avatar.html' import user_avatar with context %}
+                {{ user_avatar(g.user.username, g.user.avatar, 'xs', '', g.user.id) }}
+                <span>Рады видеть снова, <strong>{{ g.user.username }}</strong></span>
             </div>
-            <div class="welcome-user-info">
-                <div class="welcome-user-name">
-                    <span>{{ g.user.username }}</span>
-                    {% with xp=g.user.xp|default(0, true), username=g.user.username, is_admin=g.user.is_admin, icon_only=true %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                    {% with last_seen=g.user.last_seen, check_user_id=g.user.id %}
-                        {% include '_online_status.html' %}
-                    {% endwith %}
-                </div>
-            </div>
+        {% endif %}
+
+        <h1 class="signal-title" id="signal-title">
+            Тихий интернет<br>для <em>громких идей.</em>
+        </h1>
+        <p class="signal-lead">
+            Практические гайды, личные наблюдения и разговоры о технологиях —
+            без рекламного шума, кликбейта и бесконечной ленты.
+        </p>
+
+        <div class="signal-actions">
+            <a href="#hero-search" class="signal-cta signal-cta--primary">
+                <span>Смотреть материалы</span>
+                <b aria-hidden="true">↓</b>
+            </a>
+            {% if g.user %}
+                <a href="{{ url_for('messages_inbox') }}" class="signal-cta signal-cta--secondary">
+                    <span>Сообщения</span><b aria-hidden="true">↗</b>
+                </a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="signal-cta signal-cta--secondary">
+                    <span>Вступить</span><b aria-hidden="true">↗</b>
+                </a>
+                <a href="{{ url_for('login') }}" class="signal-login">Уже с нами? Войти</a>
+            {% endif %}
         </div>
-    {% endif %}
 
-    <div class="welcome-stats" aria-label="Статистика сообщества">
-        <span class="welcome-stat">
-            <strong>{{ posts|length }}</strong>
-            <small>постов</small>
-        </span>
-        <span class="welcome-stat">
-            <strong>{{ categories|length }}</strong>
-            <small>категорий</small>
-        </span>
-        <span class="welcome-stat">
-            <strong>{{ tags|length }}</strong>
-            <small>тегов</small>
-        </span>
+        <div class="signal-principles" aria-label="Принципы журнала">
+            <span><i aria-hidden="true">01</i> Ручной отбор</span>
+            <span><i aria-hidden="true">02</i> Без рекламы</span>
+            <span><i aria-hidden="true">03</i> Живое общение</span>
+        </div>
     </div>
 
-    <div class="welcome-actions">
-        <a href="#hero-search" class="welcome-action-btn">
-            <span>Смотреть материалы</span><b aria-hidden="true">↓</b>
-        </a>
-        {% if g.user %}
-            <a href="{{ url_for('messages_inbox') }}" class="welcome-action-btn">
-                <span>Открыть сообщения</span><b aria-hidden="true">↗</b>
-            </a>
-            <a href="{{ url_for('edit_profile') }}" class="welcome-action-btn">
-                <span>Настроить профиль</span><b aria-hidden="true">→</b>
+    <div class="signal-visual">
+        <div class="signal-orbit" aria-hidden="true">
+            <span></span><span></span><span></span>
+        </div>
+
+        {% if featured_post %}
+            {% set featured_cover = post_cover(featured_post) %}
+            <a href="{{ url_for('view_post', post_id=featured_post.id) }}" class="signal-feature">
+                <div class="signal-feature-media">
+                    {% if featured_cover %}
+                        <img src="{{ media_url(featured_cover) }}"
+                             alt="Обложка материала «{{ featured_post.title }}»"
+                             fetchpriority="high" decoding="async">
+                    {% else %}
+                        <div class="signal-feature-placeholder" aria-hidden="true">
+                            <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" width="76" height="76">
+                        </div>
+                    {% endif %}
+                    <span class="signal-feature-shade" aria-hidden="true"></span>
+                    <span class="signal-feature-label">Выбор редакции</span>
+                </div>
+                <div class="signal-feature-body">
+                    <span class="signal-feature-index">FEATURE / 01</span>
+                    <strong>{{ featured_post.title }}</strong>
+                    <span class="signal-feature-meta">
+                        {{ featured_post.username }} · {{ (featured_post.published_at or featured_post.created_at) | format_date_ru }}
+                    </span>
+                </div>
+                <span class="signal-feature-arrow" aria-hidden="true">↗</span>
             </a>
         {% else %}
-            <a href="{{ url_for('register') }}" class="welcome-action-btn">
-                <span>Создать аккаунт</span><b aria-hidden="true">→</b>
-            </a>
-            <a href="{{ url_for('login') }}" class="welcome-action-btn">
-                <span>Войти в аккаунт</span><b aria-hidden="true">↗</b>
-            </a>
+            <div class="signal-manifest-card">
+                <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" width="88" height="88">
+                <span>SOZERACKE / PRIVATE NETWORK</span>
+                <strong>Здесь появится следующий материал.</strong>
+            </div>
         {% endif %}
     </div>
-
-    {% if featured_post %}
-        <a href="{{ url_for('view_post', post_id=featured_post.id) }}" class="welcome-post-preview">
-            <div class="welcome-post-author">
-                {% from '_avatar.html' import user_avatar with context %}
-                {{ user_avatar(featured_post.username, none, 'xs', '', featured_post.author_id) }}
-                <span class="welcome-post-name">
-                    {{ featured_post.username }}
-                    {% with xp=featured_post.author_xp|default(0, true), username=featured_post.username, icon_only=true %}
-                        {% include '_user_level.html' %}
-                    {% endwith %}
-                    {% with last_seen=featured_post.author_last_seen, check_user_id=featured_post.author_id, compact=true %}
-                        {% include '_online_status.html' %}
-                    {% endwith %}
-                </span>
-            </div>
-            <div class="welcome-post-body">
-                <span class="welcome-post-label">СВЕЖИЙ МАТЕРИАЛ</span>
-                <span class="welcome-post-title">{{ featured_post.title }}</span>
-                <span class="welcome-post-date">{{ (featured_post.published_at or featured_post.created_at) | format_date_ru }}</span>
-            </div>
-            {% if is_post_private(featured_post) %}
-                <span class="welcome-post-badge">PRIVATE</span>
-            {% endif %}
-        </a>
-    {% endif %}
-
 </section>

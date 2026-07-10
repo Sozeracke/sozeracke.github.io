@@ -1,71 +1,92 @@
 {% macro post_card(post, card_index=0, show_author_level=true, show_online=true) %}
+{% set card_number = "%02d" | format(card_index + 1) %}
 <article class="post-card{% if is_post_pinned(post) %} post-card--pinned{% endif %}" style="--card-delay: {{ card_index * 0.06 }}s">
-    <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card-cover">
+    <a href="{{ url_for('view_post', post_id=post.id) }}" class="post-card-cover"
+       aria-label="Открыть материал «{{ post.title }}»">
         {% set cover = post_cover(post) %}
         {% if cover %}
             <img src="{{ media_url(cover) }}"
-                 alt="" class="post-card-image" loading="lazy">
+                 alt="Обложка материала «{{ post.title }}»" class="post-card-image" loading="lazy" decoding="async">
         {% else %}
             <div class="post-card-cover-placeholder" aria-hidden="true">
-                <span class="post-card-cover-icon">📝</span>
+                <span class="post-card-placeholder-grid"></span>
+                <img src="{{ url_for('static', filename='site-logo.png') }}" alt="" width="68" height="68">
             </div>
         {% endif %}
-        <span class="post-card-cover-action">Открыть</span>
+        <span class="post-card-cover-shade" aria-hidden="true"></span>
+        <span class="post-card-number" aria-hidden="true">{{ card_number }}</span>
+        <span class="post-card-cover-action">Открыть <b aria-hidden="true">↗</b></span>
     </a>
+
     <div class="post-card-body">
-        <div class="post-card-header">
-            <a href="{{ url_for('user_profile', username=post.username) }}" class="post-author">
-                <span class="user-name-with-level">{{ post.username }}</span>
+        <div class="post-card-topline">
+            <div class="post-card-rubric">
+                {% if post.category_name %}
+                    <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
+                        {{ post.category_name }}
+                    </a>
+                {% else %}
+                    <span class="category-badge">Заметка</span>
+                {% endif %}
+                {% if is_post_private(post) %}
+                    <span class="badge badge-private">приватный</span>
+                {% elif is_post_scheduled(post) %}
+                    <span class="badge badge-scheduled">запланирован</span>
+                {% elif is_post_pinned(post) %}
+                    <span class="badge badge-pinned">выбор редакции</span>
+                {% endif %}
+            </div>
+            <span class="post-card-reading">{{ post.content | reading_time }} мин</span>
+        </div>
+
+        <h2 class="post-title">
+            <a href="{{ url_for('view_post', post_id=post.id) }}">{{ post.title }}</a>
+        </h2>
+
+        {% set excerpt = post.content | post_excerpt %}
+        <p class="post-excerpt">{{ excerpt[:180] }}{% if excerpt|length > 180 %}…{% endif %}</p>
+
+        {% if post.tags %}
+            <div class="post-tags post-tags-sm" aria-label="Теги материала">
+                {% for tag in post.tags %}
+                    <a href="{{ url_for('tag_posts', slug=tag.slug) }}" class="tag-pill">#{{ tag.name | tag_display }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="post-card-footer">
+            <a href="{{ url_for('user_profile', username=post.username) }}" class="post-card-author">
+                {% from '_avatar.html' import user_avatar with context %}
+                {{ user_avatar(post.username, none, 'xs', '', post.author_id) }}
+                <span>
+                    <strong>{{ post.username }}</strong>
+                    <time datetime="{{ post.published_at or post.created_at }}">
+                        {{ (post.published_at or post.created_at) | format_date_ru }}
+                    </time>
+                </span>
                 {% if show_online %}
                     {% with last_seen=post.author_last_seen, check_user_id=post.author_id, compact=true %}
                         {% include '_online_status.html' %}
                     {% endwith %}
                 {% endif %}
             </a>
-            {% if is_post_private(post) or is_post_scheduled(post) %}
-                <div class="post-card-meta">
-                    {% if is_post_private(post) %}
-                        <span class="badge badge-private">приватный</span>
-                    {% elif is_post_scheduled(post) %}
-                        <span class="badge badge-scheduled">запланирован</span>
-                    {% endif %}
-                </div>
-            {% endif %}
-        </div>
-        {% if post.category_name %}
-            <a href="{{ url_for('category_posts', slug=post.category_slug) }}" class="category-badge">
-                {{ post.category_name }}
-            </a>
-        {% endif %}
-        <h2 class="post-title">
-            <a href="{{ url_for('view_post', post_id=post.id) }}">{{ post.title }}</a>
-        </h2>
-        {% set excerpt = post.content | post_excerpt %}
-        <p class="post-excerpt">{{ excerpt[:200] }}{% if excerpt|length > 200 %}...{% endif %}</p>
-        {% if post.tags %}
-            <div class="post-tags post-tags-sm">
-                {% for tag in post.tags %}
-                    <a href="{{ url_for('tag_posts', slug=tag.slug) }}" class="tag-pill">#{{ tag.name | tag_display }}</a>
-                {% endfor %}
-            </div>
-        {% endif %}
-        <div class="post-card-footer">
-            <div class="post-engagement">
-                <span class="like-count">❤️ {{ post.like_count|default(0) }}</span>
-                <span class="comment-count">💬 {{ post.comment_count|default(0) }}</span>
-            </div>
+
             <div class="post-card-actions">
+                <span class="post-card-engagement" aria-label="{{ post.like_count|default(0) }} лайков, {{ post.comment_count|default(0) }} комментариев">
+                    <span aria-hidden="true">♡ {{ post.like_count|default(0) }}</span>
+                    <span aria-hidden="true">◌ {{ post.comment_count|default(0) }}</span>
+                </span>
                 <button type="button"
                         class="share-card-button"
                         data-share-post
                         data-share-url="{{ url_for('view_post', post_id=post.id, _external=True) }}"
                         data-share-title="{{ post.title }}"
-                        aria-label="Поделиться постом {{ post.title }}">
+                        aria-label="Поделиться материалом {{ post.title }}">
                     <span class="share-card-icon" aria-hidden="true">↗</span>
                     <span class="share-card-label">Поделиться</span>
                 </button>
-                <a href="{{ url_for('view_post', post_id=post.id) }}" class="read-more">
-                    <span>Читать далее</span>
+                <a href="{{ url_for('view_post', post_id=post.id) }}" class="read-more" aria-label="Читать {{ post.title }}">
+                    <span>Читать</span>
                 </a>
             </div>
         </div>
