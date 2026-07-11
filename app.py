@@ -1132,6 +1132,29 @@ def ai_sources(posts):
     ]
 
 
+def ai_fallback_answer(posts):
+    """Return a useful, source-only answer when the AI provider is unavailable."""
+    material_lines = []
+    for post in posts:
+        excerpt = re.sub(
+            r"\s+", " ", strip_inline_image_markers(post.get("content") or "")
+        ).strip()
+        if excerpt:
+            excerpt = excerpt[:360].rstrip()
+            if len(excerpt) == 360:
+                excerpt += "…"
+        else:
+            excerpt = "В этом материале пока нет текста для краткого описания."
+        material_lines.append(f"• «{post.get('title', 'Материал')}»: {excerpt}")
+
+    return (
+        "Сейчас генерация ответа временно недоступна, поэтому я показываю "
+        "подходящие материалы журнала и их краткое содержание:\n\n"
+        + "\n\n".join(material_lines)
+        + "\n\nОткройте источники ниже — в них есть полный текст."
+    )
+
+
 AI_ASSISTANT_INSTRUCTIONS = """
 Ты — AI-помощник цифрового журнала SOZERACKE. Отвечай по-русски, спокойно,
 ясно и без маркетинговых штампов. Сначала опирайся на переданные материалы
@@ -1570,11 +1593,12 @@ def assistant_api():
         )
         answer = (response.output_text or "").strip()
     except Exception:
-        app.logger.exception("AI assistant request failed")
+        app.logger.exception("AI assistant request failed; returning source-only fallback")
         return jsonify({
-            "error": "Не удалось получить ответ от AI-помощника. Попробуйте ещё раз немного позже.",
-            "code": "assistant_unavailable",
-        }), 502
+            "answer": ai_fallback_answer(relevant_posts),
+            "sources": ai_sources(relevant_posts),
+            "degraded": True,
+        })
 
     if not answer:
         return jsonify({"error": "AI-помощник вернул пустой ответ. Попробуйте переформулировать вопрос."}), 502

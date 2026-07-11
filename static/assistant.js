@@ -130,7 +130,11 @@
                 throw new Error(payload.error || "Не удалось получить ответ. Попробуйте ещё раз немного позже.");
             }
             createMessage("bot", payload.answer, payload.sources || []);
-            setNote("Ответ сформирован. Источники под ним ведут к исходным материалам.", false);
+            if (payload.degraded) {
+                setNote("Генерация временно недоступна — показаны подходящие материалы журнала.", false);
+            } else {
+                setNote("Ответ сформирован. Источники под ним ведут к исходным материалам.", false);
+            }
         } catch (error) {
             createMessage("bot", error && error.message ? error.message : "Не удалось получить ответ. Попробуйте ещё раз немного позже.");
             setNote("Запрос не отправлен. Проверьте соединение и попробуйте ещё раз.", true);
