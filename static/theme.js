@@ -103,6 +103,72 @@
         });
     }
 
+    var pointerMotionQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    var reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    var pointerMotionFrame = 0;
+    var pointerX = 0;
+    var pointerY = 0;
+    var heroPointerX = 0;
+    var heroPointerY = 0;
+    var signalHero = document.querySelector(".signal-hero");
+
+    function pointerMotionEnabled() {
+        return pointerMotionQuery.matches && !reducedMotionQuery.matches;
+    }
+
+    function applyPointerMotion() {
+        pointerMotionFrame = 0;
+        root.style.setProperty("--pointer-x", pointerX.toFixed(3));
+        root.style.setProperty("--pointer-y", pointerY.toFixed(3));
+        root.style.setProperty("--hero-pointer-x", heroPointerX.toFixed(3));
+        root.style.setProperty("--hero-pointer-y", heroPointerY.toFixed(3));
+    }
+
+    function schedulePointerMotion() {
+        if (!pointerMotionFrame) {
+            pointerMotionFrame = window.requestAnimationFrame(applyPointerMotion);
+        }
+    }
+
+    function resetPointerMotion() {
+        pointerX = 0;
+        pointerY = 0;
+        heroPointerX = 0;
+        heroPointerY = 0;
+        schedulePointerMotion();
+    }
+
+    if (pointerMotionEnabled()) {
+        document.addEventListener("pointermove", function (event) {
+            if (event.pointerType && event.pointerType !== "mouse") return;
+
+            pointerX = Math.max(-1, Math.min(1, event.clientX / window.innerWidth * 2 - 1));
+            pointerY = Math.max(-1, Math.min(1, event.clientY / window.innerHeight * 2 - 1));
+
+            if (signalHero) {
+                var heroRect = signalHero.getBoundingClientRect();
+                var isInsideHero = event.clientX >= heroRect.left && event.clientX <= heroRect.right &&
+                    event.clientY >= heroRect.top && event.clientY <= heroRect.bottom;
+
+                if (isInsideHero) {
+                    heroPointerX = Math.max(-1, Math.min(1, (event.clientX - heroRect.left) / heroRect.width * 2 - 1));
+                    heroPointerY = Math.max(-1, Math.min(1, (event.clientY - heroRect.top) / heroRect.height * 2 - 1));
+                } else {
+                    heroPointerX = 0;
+                    heroPointerY = 0;
+                }
+            }
+
+            schedulePointerMotion();
+        }, { passive: true });
+
+        window.addEventListener("blur", resetPointerMotion);
+    }
+
+    reducedMotionQuery.addEventListener("change", function () {
+        if (reducedMotionQuery.matches) resetPointerMotion();
+    });
+
     document.querySelectorAll("[data-flash]").forEach(function (flash) {
         var closeBtn = flash.querySelector("[data-flash-close]");
         var hideFlash = function () {
