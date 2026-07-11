@@ -2,6 +2,7 @@ databases:
   - name: blog-db
     plan: free
 
+
 services:
   - type: web
     name: sozeracke-blog
@@ -22,7 +23,7 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: 
+        value: gpt-5.5
       - key: AI_ASSISTANT_REQUESTS_PER_HOUR
         value: "10"
       - key: SITE_OWNER
@@ -33,3 +34,4 @@ services:
         value: https://sozeracke.github.io
       - key: PUBLIC_URL
         value: https://sozeracke-blog.onrender.com
+
