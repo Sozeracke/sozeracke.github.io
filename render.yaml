@@ -22,7 +22,7 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: gpt-5.6-sol
+        value: 
       - key: AI_ASSISTANT_REQUESTS_PER_HOUR
         value: "10"
       - key: SITE_OWNER
