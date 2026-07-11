@@ -97,7 +97,7 @@ def env_int(name, default):
         return default
 
 
-AI_ASSISTANT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.6-sol").strip() or "gpt-5.6-sol"
+AI_ASSISTANT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.5").strip() or "gpt-5.5"
 AI_ASSISTANT_MAX_MESSAGE_LENGTH = env_int("AI_ASSISTANT_MAX_MESSAGE_LENGTH", 1600)
 AI_ASSISTANT_REQUESTS_PER_HOUR = env_int("AI_ASSISTANT_REQUESTS_PER_HOUR", 10)
 AI_ASSISTANT_RATE_WINDOW_SECONDS = 60 * 60
