@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='premium.css') }}?v=2">
     <script src="{{ url_for('static', filename='theme.js') }}?v=23" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <a href="#main-content" class="skip-link">Перейти к содержанию</a>
     <div class="reading-progress" data-reading-progress aria-hidden="true"></div>
     <nav class="navbar" aria-label="Основная навигация">
@@ -48,6 +48,10 @@
             </a>
 
             <span class="nav-edition" aria-hidden="true">DIGITAL JOURNAL</span>
+            <a href="{{ url_for('assistant_page') }}" class="nav-ai-link">
+                <span aria-hidden="true">✦</span>
+                AI-помощник
+            </a>
             <div class="nav-spacer"></div>
 
             <button type="button" class="theme-toggle" data-theme-toggle
@@ -132,6 +136,11 @@
         {% block content %}{% endblock %}
     </main>
 
+    <a href="{{ url_for('assistant_page') }}" class="ai-assistant-fab" aria-label="Открыть AI-помощника">
+        <span class="ai-assistant-fab-mark" aria-hidden="true">✦</span>
+        <span class="ai-assistant-fab-text">AI-помощник</span>
+    </a>
+
     <footer class="footer">
         <div class="container footer-inner">
             <div class="footer-topline">
@@ -153,6 +162,7 @@
             <div class="footer-bottomline">
                 <nav class="footer-nav" aria-label="Навигация в подвале">
                     <a href="{{ url_for('index') }}">Материалы</a>
+                    <a href="{{ url_for('assistant_page') }}">AI-помощник</a>
                     {% if g.user %}
                         <a href="{{ url_for('messages_inbox') }}">Сообщения</a>
                         <a href="{{ url_for('user_profile', username=g.user.username) }}">Профиль</a>

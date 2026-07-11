@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}AI-помощник — {{ site_name }}{% endblock %}
+{% block body_class %}assistant-page{% endblock %}
+{% block main_class %}assistant-main{% endblock %}
+{% block head %}
+    <script src="{{ url_for('static', filename='assistant.js') }}?v=1" defer></script>
+{% endblock %}
+
+{% block content %}
+<section class="assistant-shell" data-assistant data-assistant-enabled="{{ 'true' if assistant_enabled else 'false' }}">
+    <header class="assistant-hero">
+        <div class="assistant-hero-copy">
+            <p class="assistant-kicker"><span aria-hidden="true">✦</span> SOZERACKE / AI EDITOR</p>
+            <h1>Смысл материалов.<br><em>Без лишнего поиска.</em></h1>
+            <p>
+                Помощник находит релевантные статьи, отвечает по опубликованным материалам
+                и объясняет сложные темы человеческим языком.
+            </p>
+        </div>
+        <div class="assistant-model-card" aria-label="Используемая AI-модель">
+            <span class="assistant-model-orbit" aria-hidden="true"></span>
+            <span class="assistant-model-label">MODEL</span>
+            <strong>{{ assistant_model }}</strong>
+            <span class="assistant-model-caption">Контекст: материалы SOZERACKE</span>
+        </div>
+    </header>
+
+    <div class="assistant-workspace">
+        <aside class="assistant-aside" aria-label="Возможности помощника">
+            <p class="assistant-aside-index">01 / ВОЗМОЖНОСТИ</p>
+            <ul class="assistant-benefits">
+                <li><span>⌕</span><div><b>Находит смысл</b><small>Выбирает связанные материалы из журнала.</small></div></li>
+                <li><span>↗</span><div><b>Показывает источники</b><small>К ответу прикладываются статьи, на которые он опирался.</small></div></li>
+                <li><span>◌</span><div><b>Объясняет спокойно</b><small>Если в журнале нет ответа — отделяет общее объяснение от материалов.</small></div></li>
+            </ul>
+            <div class="assistant-limit-note"><span aria-hidden="true">●</span> До {{ assistant_request_limit }} вопросов в час для одного посетителя.</div>
+        </aside>
+
+        <div class="assistant-chat-card">
+            <div class="assistant-chat-topline">
+                <div><span class="assistant-chat-eyebrow">PRIVATE KNOWLEDGE DESK</span><h2>Чем помочь?</h2></div>
+                <span class="assistant-status {% if assistant_enabled %}is-online{% else %}is-offline{% endif %}"><i aria-hidden="true"></i>{% if assistant_enabled %}На связи{% else %}Нужна настройка{% endif %}</span>
+            </div>
+
+            <div class="assistant-suggestions" aria-label="Примеры вопросов">
+                <button type="button" data-assistant-suggestion>Что уже написано про ИИ?</button>
+                <button type="button" data-assistant-suggestion>Объясни сложную тему простыми словами</button>
+                <button type="button" data-assistant-suggestion>С чего начать изучение темы?</button>
+            </div>
+
+            <div class="assistant-messages" data-assistant-messages aria-live="polite">
+                <article class="assistant-message assistant-message--bot">
+                    <div class="assistant-message-avatar" aria-hidden="true">✦</div>
+                    <div class="assistant-message-body"><span>SOZERACKE AI</span><p>Задайте вопрос — я посмотрю материалы журнала, соберу ответ и отмечу статьи, которые использовал.</p></div>
+                </article>
+            </div>
+
+            {% if assistant_enabled %}
+                <form class="assistant-form" data-assistant-form>
+                    <label class="visually-hidden" for="assistant-question">Ваш вопрос</label>
+                    <textarea id="assistant-question" name="message" rows="1" maxlength="1600" placeholder="Например: что в журнале есть про нейросети?" data-assistant-input required></textarea>
+                    <button type="submit" class="assistant-send" data-assistant-send><span>Спросить</span><i aria-hidden="true">↗</i></button>
+                </form>
+                <p class="assistant-form-note" data-assistant-note>Ответы формируются по материалам журнала. Не добавляйте личные или конфиденциальные данные.</p>
+            {% else %}
+                <div class="assistant-setup" role="status">
+                    <span class="assistant-setup-mark" aria-hidden="true">✦</span>
+                    <div><b>Помощник почти готов</b><p>Для запуска владельцу нужно добавить <code>OPENAI_API_KEY</code> в переменные Render. Ключ не хранится в сайте.</p></div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
