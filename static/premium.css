@@ -93,6 +93,103 @@ body::after {
     will-change: transform;
 }
 
+/* Ambient field: a low-contrast living layer that stays behind every page. */
+.ambient-scene {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    isolation: isolate;
+}
+
+.ambient-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0.7;
+    mix-blend-mode: screen;
+}
+
+.ambient-orb {
+    position: absolute;
+    width: min(48vw, 680px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(14px);
+    opacity: 0.38;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+}
+
+.ambient-orb-violet {
+    top: -20vw;
+    left: -15vw;
+    background: radial-gradient(circle, rgba(123, 92, 250, 0.25) 0, rgba(123, 92, 250, 0.08) 34%, transparent 69%);
+    animation: ambient-orbit-violet 26s cubic-bezier(0.42, 0, 0.24, 1) infinite alternate;
+}
+
+.ambient-orb-amber {
+    top: 27vh;
+    right: -21vw;
+    background: radial-gradient(circle, rgba(236, 168, 95, 0.21) 0, rgba(236, 168, 95, 0.065) 38%, transparent 70%);
+    animation: ambient-orbit-amber 34s cubic-bezier(0.42, 0, 0.24, 1) infinite alternate;
+}
+
+.ambient-orb-aqua {
+    bottom: -30vw;
+    left: 24vw;
+    width: min(42vw, 590px);
+    opacity: 0.28;
+    background: radial-gradient(circle, rgba(48, 198, 174, 0.18) 0, rgba(48, 198, 174, 0.045) 42%, transparent 70%);
+    animation: ambient-orbit-aqua 30s cubic-bezier(0.42, 0, 0.24, 1) infinite alternate;
+}
+
+.ambient-haze {
+    position: absolute;
+    inset: -20%;
+    opacity: 0.44;
+    background:
+        conic-gradient(from 25deg at 52% 45%, transparent 0deg, rgba(255, 255, 255, 0.025) 58deg, transparent 118deg, rgba(236, 168, 95, 0.035) 190deg, transparent 266deg, rgba(128, 95, 255, 0.03) 326deg, transparent 360deg);
+    animation: ambient-haze-turn 78s linear infinite;
+    will-change: transform;
+}
+
+@keyframes ambient-orbit-violet {
+    from { transform: translate3d(calc(var(--pointer-x) * -10px), calc(var(--pointer-y) * -8px), 0) scale(0.95); }
+    to { transform: translate3d(calc(15vw + var(--pointer-x) * 12px), calc(9vh + var(--pointer-y) * 10px), 0) scale(1.16); }
+}
+
+@keyframes ambient-orbit-amber {
+    from { transform: translate3d(calc(var(--pointer-x) * 10px), calc(var(--pointer-y) * 8px), 0) scale(1.08); }
+    to { transform: translate3d(calc(-17vw + var(--pointer-x) * 12px), calc(-12vh + var(--pointer-y) * 10px), 0) scale(0.9); }
+}
+
+@keyframes ambient-orbit-aqua {
+    from { transform: translate3d(calc(var(--pointer-x) * -8px), calc(var(--pointer-y) * 6px), 0) scale(0.9); }
+    to { transform: translate3d(calc(16vw + var(--pointer-x) * 10px), calc(-15vh + var(--pointer-y) * 8px), 0) scale(1.18); }
+}
+
+@keyframes ambient-haze-turn {
+    from { transform: rotate(0deg) scale(1); }
+    to { transform: rotate(360deg) scale(1.08); }
+}
+
+[data-theme="light"] .ambient-canvas {
+    opacity: 0.38;
+    mix-blend-mode: multiply;
+}
+
+[data-theme="light"] .ambient-orb {
+    opacity: 0.24;
+}
+
+[data-theme="light"] .ambient-haze {
+    opacity: 0.28;
+}
+
 [data-theme="light"] body::before {
     background:
         radial-gradient(circle, rgba(20, 29, 43, 0.16) 0 0.7px, transparent 0.95px),
@@ -1873,6 +1970,17 @@ select,
         display: none;
     }
 
+    .ambient-orb {
+        width: 76vw;
+        filter: blur(18px);
+        opacity: 0.25;
+    }
+
+    .ambient-orb-aqua,
+    .ambient-haze {
+        display: none;
+    }
+
     .nav-inner {
         min-height: var(--nav-height);
         padding: 0 16px;
@@ -2474,7 +2582,9 @@ select,
     .post-card,
     .signal-live,
     .nav-user-menu.is-open,
-    body::before {
+    body::before,
+    .ambient-orb,
+    .ambient-haze {
         animation: none !important;
     }
 
@@ -2484,6 +2594,8 @@ select,
     .catalog-sidebar,
     body::before,
     body::after,
+    .ambient-orb,
+    .ambient-haze,
     .signal-hero::before,
     .signal-hero::after,
     .signal-orbit,
@@ -2493,6 +2605,8 @@ select,
 
     body::before,
     body::after,
+    .ambient-orb,
+    .ambient-haze,
     .signal-hero::before,
     .signal-hero::after,
     .signal-orbit,

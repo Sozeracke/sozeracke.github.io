@@ -29,10 +29,17 @@
     </script>
     {% block head %}{% endblock %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=41">
-    <link rel="stylesheet" href="{{ url_for('static', filename='premium.css') }}?v=2">
-    <script src="{{ url_for('static', filename='theme.js') }}?v=23" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='premium.css') }}?v=3">
+    <script src="{{ url_for('static', filename='theme.js') }}?v=24" defer></script>
 </head>
 <body>
+    <div class="ambient-scene" aria-hidden="true">
+        <canvas class="ambient-canvas" data-ambient-canvas></canvas>
+        <span class="ambient-orb ambient-orb-violet"></span>
+        <span class="ambient-orb ambient-orb-amber"></span>
+        <span class="ambient-orb ambient-orb-aqua"></span>
+        <span class="ambient-haze"></span>
+    </div>
     <a href="#main-content" class="skip-link">Перейти к содержанию</a>
     <div class="reading-progress" data-reading-progress aria-hidden="true"></div>
     <nav class="navbar" aria-label="Основная навигация">

@@ -169,6 +169,116 @@
         if (reducedMotionQuery.matches) resetPointerMotion();
     });
 
+    var ambientCanvas = document.querySelector("[data-ambient-canvas]");
+
+    if (ambientCanvas && ambientCanvas.getContext) {
+        var ambientContext = ambientCanvas.getContext("2d");
+        var ambientParticles = [];
+        var ambientWidth = 0;
+        var ambientHeight = 0;
+        var ambientDpr = 1;
+        var ambientFrame = 0;
+        var ambientLastTime = 0;
+
+        function createAmbientParticle() {
+            return {
+                x: Math.random() * ambientWidth,
+                y: Math.random() * ambientHeight,
+                vx: (Math.random() - 0.5) * 0.24,
+                vy: (Math.random() - 0.5) * 0.18,
+                radius: Math.random() * 1.15 + 0.3,
+                drift: Math.random() * Math.PI * 2
+            };
+        }
+
+        function resizeAmbientCanvas() {
+            ambientDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            ambientWidth = window.innerWidth;
+            ambientHeight = window.innerHeight;
+            ambientCanvas.width = Math.round(ambientWidth * ambientDpr);
+            ambientCanvas.height = Math.round(ambientHeight * ambientDpr);
+            ambientContext.setTransform(ambientDpr, 0, 0, ambientDpr, 0, 0);
+
+            var particleCount = Math.max(24, Math.min(50, Math.round(ambientWidth * ambientHeight / 33000)));
+            ambientParticles = Array.from({ length: particleCount }, createAmbientParticle);
+        }
+
+        function drawAmbient(time) {
+            var elapsed = ambientLastTime ? Math.min(2, (time - ambientLastTime) / 16.667) : 1;
+            ambientLastTime = time;
+            var lightTheme = root.getAttribute("data-theme") === "light";
+            var colour = lightTheme ? "94, 77, 58" : "245, 222, 191";
+            var accent = lightTheme ? "169, 95, 31" : "236, 168, 95";
+            var linkDistance = Math.min(156, Math.max(94, ambientWidth * 0.115));
+
+            ambientContext.clearRect(0, 0, ambientWidth, ambientHeight);
+
+            ambientParticles.forEach(function (particle, index) {
+                particle.drift += 0.006 * elapsed;
+                particle.x += (particle.vx + Math.cos(particle.drift) * 0.035 + pointerX * 0.045) * elapsed;
+                particle.y += (particle.vy + Math.sin(particle.drift) * 0.03 + pointerY * 0.035) * elapsed;
+
+                if (particle.x < -8) particle.x = ambientWidth + 8;
+                if (particle.x > ambientWidth + 8) particle.x = -8;
+                if (particle.y < -8) particle.y = ambientHeight + 8;
+                if (particle.y > ambientHeight + 8) particle.y = -8;
+
+                for (var otherIndex = index + 1; otherIndex < ambientParticles.length; otherIndex++) {
+                    var other = ambientParticles[otherIndex];
+                    var dx = particle.x - other.x;
+                    var dy = particle.y - other.y;
+                    var distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < linkDistance) {
+                        var linkAlpha = (1 - distance / linkDistance) * (lightTheme ? 0.08 : 0.11);
+                        ambientContext.beginPath();
+                        ambientContext.moveTo(particle.x, particle.y);
+                        ambientContext.lineTo(other.x, other.y);
+                        ambientContext.strokeStyle = "rgba(" + colour + ", " + linkAlpha + ")";
+                        ambientContext.lineWidth = 0.55;
+                        ambientContext.stroke();
+                    }
+                }
+
+                ambientContext.beginPath();
+                ambientContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ambientContext.fillStyle = "rgba(" + (index % 7 === 0 ? accent : colour) + ", " + (lightTheme ? 0.24 : 0.38) + ")";
+                ambientContext.fill();
+            });
+        }
+
+        function animateAmbient(time) {
+            ambientFrame = 0;
+            drawAmbient(time);
+            if (!reducedMotionQuery.matches && !document.hidden) {
+                ambientFrame = window.requestAnimationFrame(animateAmbient);
+            }
+        }
+
+        function requestAmbientFrame() {
+            if (!ambientFrame) ambientFrame = window.requestAnimationFrame(animateAmbient);
+        }
+
+        resizeAmbientCanvas();
+        requestAmbientFrame();
+        window.addEventListener("resize", function () {
+            resizeAmbientCanvas();
+            requestAmbientFrame();
+        }, { passive: true });
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) requestAmbientFrame();
+        });
+        reducedMotionQuery.addEventListener("change", function () {
+            ambientLastTime = 0;
+            if (reducedMotionQuery.matches) {
+                if (ambientFrame) window.cancelAnimationFrame(ambientFrame);
+                ambientFrame = 0;
+                drawAmbient(0);
+            } else {
+                requestAmbientFrame();
+            }
+        });
+    }
+
     document.querySelectorAll("[data-flash]").forEach(function (flash) {
         var closeBtn = flash.querySelector("[data-flash-close]");
         var hideFlash = function () {
